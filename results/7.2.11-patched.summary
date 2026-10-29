@@ -1,0 +1,6 @@
+
+TEST                   VERDICT                            NOTES
+d1-resident            PASS test_rc=0 elapsed=122s        
+d1-resident-t          PASS test_rc=0 elapsed=121s        
+d1-resident-f          PASS test_rc=0 elapsed=122s        
+d1-resmmap             PASS test_rc=0 elapsed=122s        

@@ -1,0 +1,61 @@
+From 7ecedc12dc3f15980aa9fb0e57c1ea6255b7dcf1 Mon Sep 17 00:00:00 2001
+From: Kamil Chojnowski <contact@diath.net>
+Date: Thu, 29 Oct 2026 20:52:47 +0100
+Subject: [PATCH 4/6] fs/ntfs3: grow $DATA before publishing i_size in setattr
+
+ntfs_setattr() calls truncate_setsize() and then ntfs_set_size().  When
+a resident file grows, i_size is updated before the resident attribute,
+so a concurrent read gets an inline mapping shorter than i_size:
+iomap_read_inline_data() warns and the read fails with -EIO.
+
+  WARNING: fs/iomap/buffered-io.c:431 at iomap_read_inline_data
+   iomap_read_folio_iter
+   iomap_read_folio
+   ntfs_read_folio
+   filemap_read_folio
+
+ntfs_set_size() updates i_size itself once the attribute is resized.
+Call truncate_setsize() first only when shrinking; when growing, resize
+the attribute first and then call pagecache_isize_extended().
+
+Reproducer: ntfs3-stress resident <dir> -g t (ftruncate up in 64-byte
+steps while another thread reads); on 7.3 it fails within seconds.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ fs/ntfs3/file.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ntfs3/file.c b/fs/ntfs3/file.c
+index 57d2330..4cf676d 100644
+--- a/fs/ntfs3/file.c
++++ b/fs/ntfs3/file.c
+@@ -751,7 +751,14 @@ int ntfs_setattr(struct mnt_idmap *idmap, struct dentry *dentry,
+ 		newsize = attr->ia_size;
+ 
+ 		if (newsize != oldsize) {
+-			truncate_setsize(inode, newsize);
++			/*
++			 * Grow the attribute before i_size: read_folio maps
++			 * resident data by the attribute size and fails with
++			 * -EIO if i_size is already beyond it.  ntfs_set_size()
++			 * updates i_size.
++			 */
++			if (newsize < oldsize)
++				truncate_setsize(inode, newsize);
+ 
+ 			err = ntfs_set_size(inode, newsize);
+ 			if (err) {
+@@ -759,6 +766,9 @@ int ntfs_setattr(struct mnt_idmap *idmap, struct dentry *dentry,
+ 				goto out;
+ 			}
+ 
++			if (newsize > oldsize)
++				pagecache_isize_extended(inode, oldsize, newsize);
++
+ 			ni->std_fa |= FILE_ATTRIBUTE_ARCHIVE;
+ 			ni->ni_flags |= NI_FLAG_UPDATE_PARENT;
+ 			inode_set_mtime_to_ts(inode,
+-- 
+2.56.0
+

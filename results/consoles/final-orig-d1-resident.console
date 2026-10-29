@@ -1,0 +1,1090 @@
+[    0.000000] Linux version 7.3.0 (diath@11km) (gcc (GCC) 16.2.1 20260810, GNU ld (GNU Binutils) 2.47) #1 SMP PREEMPT_DYNAMIC Thu Oct 29 19:54:05 CET 2026
+[    0.000000] Command line: rootfstype=9p root=/dev/root rootflags=trans=virtio,version=9p2000.L,cache=loose,msize=512000 ro console=ttyS0 nokaslr panic=-1 init=/tmp/ntfs3-lab/repro/guest-init.sh lab.test=/run/lab/repro/tests/d1-resident.sh lab.tag=final-orig-d1-resident lab.timeout=150 lab.fs=ntfs3 
+[    0.000000] x86 CPU feature dependency check failure: CPU0 has '18*32+31' enabled but '18*32+26' disabled. Kernel might be fine, but no guarantees.
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000000a0000-0x00000000000effff]
+[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x00000000bffdcfff]  System RAM
+[    0.000000] BIOS-e820: [mem 0x00000000bffdd000-0x00000000bfffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000c0000000-0x00000000feffbfff]
+[    0.000000] BIOS-e820: [mem 0x00000000feffc000-0x00000000feffffff]  device reserved
+[    0.000000] BIOS-e820: [gap 0x00000000ff000000-0x00000000fffbffff]
+[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff]  device reserved
+[    0.000000] BIOS-e820: [mem 0x0000000100000000-0x000000013fffffff]  System RAM
+[    0.000000] BIOS-e820: [gap 0x0000000140000000-0x000000fcffffffff]
+[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff]  device reserved
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] DMI: SMBIOS 2.8 present.
+[    0.000000] DMI: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Arch Linux 1.17.0-2-2 04/01/2014
+[    0.000000] DMI: Memory slots populated: 1/1
+[    0.000000] Hypervisor detected: KVM
+[    0.000000] last_pfn = 0xbffdd max_arch_pfn = 0x400000000
+[    0.000000] kvm-clock: Using msrs 4b564d01 and 4b564d00
+[    0.000002] kvm-clock: using sched offset of 200433543 cycles
+[    0.000004] clocksource: kvm-clock: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns
+[    0.000011] tsc: Detected 3792.872 MHz processor
+[    0.000444] last_pfn = 0x140000 max_arch_pfn = 0x400000000
+[    0.000480] MTRR map: 4 entries (3 fixed + 1 variable; max 19), built from 8 variable MTRRs
+[    0.000484] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  
+[    0.000539] last_pfn = 0xbffdd max_arch_pfn = 0x400000000
+[    0.002067] found SMP MP-table at [mem 0x000f66a0-0x000f66af]
+[    0.002089] Using GB pages for direct mapping
+[    0.002450] ACPI: Early table checksum verification disabled
+[    0.002452] ACPI: RSDP 0x00000000000F64B0 000014 (v00 BOCHS )
+[    0.002457] ACPI: RSDT 0x00000000BFFE2452 000034 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002461] ACPI: FACP 0x00000000BFFE22EE 000074 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002464] ACPI: DSDT 0x00000000BFFE0040 0022AE (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002465] ACPI: FACS 0x00000000BFFE0000 000040
+[    0.002466] ACPI: APIC 0x00000000BFFE2362 000090 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002468] ACPI: HPET 0x00000000BFFE23F2 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002469] ACPI: WAET 0x00000000BFFE242A 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.002470] ACPI: Reserving FACP table memory at [mem 0xbffe22ee-0xbffe2361]
+[    0.002471] ACPI: Reserving DSDT table memory at [mem 0xbffe0040-0xbffe22ed]
+[    0.002471] ACPI: Reserving FACS table memory at [mem 0xbffe0000-0xbffe003f]
+[    0.002471] ACPI: Reserving APIC table memory at [mem 0xbffe2362-0xbffe23f1]
+[    0.002472] ACPI: Reserving HPET table memory at [mem 0xbffe23f2-0xbffe2429]
+[    0.002472] ACPI: Reserving WAET table memory at [mem 0xbffe242a-0xbffe2451]
+[    0.002821] No NUMA configuration found
+[    0.002822] Faking a node at [mem 0x0000000000000000-0x000000013fffffff]
+[    0.002825] NODE_DATA(0) allocated [mem 0x13fffa340-0x13fffdfff]
+[    0.003401] ACPI: PM-Timer IO Port: 0x608
+[    0.003408] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])
+[    0.003432] IOAPIC[0]: apic_id 0, version 17, address 0xfec00000, GSI 0-23
+[    0.003433] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)
+[    0.003434] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)
+[    0.003435] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)
+[    0.003435] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)
+[    0.003436] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)
+[    0.003438] ACPI: Using ACPI (MADT) for SMP configuration information
+[    0.003438] ACPI: HPET id: 0x8086a201 base: 0xfed00000
+[    0.003440] TSC deadline timer available
+[    0.003442] CPU topo: Max. logical packages:   1
+[    0.003442] CPU topo: Max. logical nodes:      1
+[    0.003443] CPU topo: Num. nodes per package:  1
+[    0.003444] CPU topo: Max. logical dies:       1
+[    0.003445] CPU topo: Max. dies per package:   1
+[    0.003448] CPU topo: Max. threads per core:   1
+[    0.003448] CPU topo: Num. cores per package:     4
+[    0.003448] CPU topo: Num. threads per package:   4
+[    0.003448] CPU topo: Allowing 4 present CPUs plus 0 hotplug CPUs
+[    0.003463] kvm-guest: APIC: eoi() replaced with kvm_guest_apic_eoi_write()
+[    0.003473] kvm-guest: KVM setup pv remote TLB flush
+[    0.003476] kvm-guest: setup PV sched yield
+[    0.003482] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]
+[    0.003483] PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x000fffff]
+[    0.003484] PM: hibernation: Registered nosave memory: [mem 0xbffdd000-0xffffffff]
+[    0.003485] [gap 0xc0000000-0xfeffbfff] available for PCI devices
+[    0.003486] Booting paravirtualized kernel on KVM
+[    0.003487] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns
+[    0.007116] Zone ranges:
+[    0.007116]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]
+[    0.007117]   DMA32    [mem 0x0000000001000000-0x00000000ffffffff]
+[    0.007118]   Normal   [mem 0x0000000100000000-0x000000013fffffff]
+[    0.007119] Movable zone start for each node
+[    0.007119] Early memory node ranges
+[    0.007120]   node   0: [mem 0x0000000000001000-0x000000000009efff]
+[    0.007120]   node   0: [mem 0x0000000000100000-0x00000000bffdcfff]
+[    0.007121]   node   0: [mem 0x0000000100000000-0x000000013fffffff]
+[    0.007121] Initmem setup node 0 [mem 0x0000000000001000-0x000000013fffffff]
+[    0.007240] On node 0, zone DMA: 1 pages in unavailable ranges
+[    0.007254] On node 0, zone DMA: 97 pages in unavailable ranges
+[    0.014263] On node 0, zone Normal: 35 pages in unavailable ranges
+[    0.014273] setup_percpu: NR_CPUS:64 nr_cpumask_bits:4 nr_cpu_ids:4 nr_node_ids:1
+[    0.015547] percpu: Embedded 501 pages/cpu s2021528 r0 d30568 u2097152
+[    0.015614] Kernel command line: rootfstype=9p root=/dev/root rootflags=trans=virtio,version=9p2000.L,cache=loose,msize=512000 ro console=ttyS0 nokaslr panic=-1 init=/tmp/ntfs3-lab/repro/guest-init.sh lab.test=/run/lab/repro/tests/d1-resident.sh lab.tag=final-orig-d1-resident lab.timeout=150 lab.fs=ntfs3 
+[    0.015684] random: crng init done
+[    0.015685] printk: log buffer data + meta data: 262144 + 917504 = 1179648 bytes
+[    0.016347] Dentry cache hash table entries: 524288 (order: 10, 4194304 bytes, linear)
+[    0.016967] Inode-cache hash table entries: 262144 (order: 9, 2097152 bytes, linear)
+[    0.017026] software IO TLB: area num 4.
+[    0.044933] Fallback order for Node 0: 0 
+[    0.044948] Built 1 zonelists, mobility grouping on.  Total pages: 1048443
+[    0.044950] Policy zone: Normal
+[    0.044956] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.056881] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=4, Nodes=1
+[    0.058173] Dynamic Preempt: lazy
+[    0.058519] Running RCU self tests
+[    0.058521] Running RCU synchronous self tests
+[    0.058525] rcu: Preemptible hierarchical RCU implementation.
+[    0.058526] rcu: 	RCU event tracing is enabled.
+[    0.058526] rcu: 	RCU lockdep checking is enabled.
+[    0.058527] rcu: 	RCU restricting CPUs from NR_CPUS=64 to nr_cpu_ids=4.
+[    0.058532] 	Trampoline variant of Tasks RCU enabled.
+[    0.058532] 	Tracing variant of Tasks RCU enabled.
+[    0.058534] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.
+[    0.058535] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=4
+[    0.058576] Running RCU synchronous self tests
+[    0.058579] RCU Tasks: Setting shift to 2 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=4.
+[    0.066298] NR_IRQS: 4352, nr_irqs: 456, preallocated irqs: 16
+[    0.066618] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.066643] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns
+[    0.072739] Console: colour VGA+ 80x25
+[    0.072817] printk: console [ttyS0] enabled
+[    0.215038] Lock dependency validator: Copyright (c) 2006 Red Hat, Inc., Ingo Molnar
+[    0.216384] ... MAX_LOCKDEP_SUBCLASSES:  8
+[    0.217107] ... MAX_LOCK_DEPTH:          48
+[    0.217842] ... MAX_LOCKDEP_KEYS:        8192
+[    0.218609] ... CLASSHASH_SIZE:          4096
+[    0.219376] ... MAX_LOCKDEP_ENTRIES:     131072
+[    0.220174] ... MAX_LOCKDEP_CHAINS:      262144
+[    0.220975] ... CHAINHASH_SIZE:          131072
+[    0.221770]  memory used by lock dependency info: 21233 kB
+[    0.222736]  memory used for stack traces: 8320 kB
+[    0.223581]  per task-struct memory footprint: 2688 bytes
+[    0.224563] ACPI: Core revision 20260408
+[    0.225464] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns
+[    0.227256] APIC: Switch to symmetric I/O mode setup
+[    0.228328] x2apic enabled
+[    0.229095] APIC: Switched APIC routing to: physical x2apic
+[    0.230109] kvm-guest: APIC: send_IPI_mask() replaced with kvm_send_ipi_mask()
+[    0.231409] kvm-guest: APIC: send_IPI_mask_allbutself() replaced with kvm_send_ipi_mask_allbutself()
+[    0.233027] kvm-guest: setup PV IPIs
+[    0.234681] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1
+[    0.235770] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x6d5815bbf2a, max_idle_ns: 881590783532 ns
+[    0.237647] Calibrating delay loop (skipped) preset value.. 7585.74 BogoMIPS (lpj=3792872)
+[    0.239677] x86/cpu: User Mode Instruction Prevention (UMIP) activated
+[    0.240713] Last level iTLB entries: 4KB 512, 2MB 255, 4MB 127
+[    0.241642] Last level dTLB entries: 4KB 512, 2MB 255, 4MB 127, 1GB 0
+[    0.242647] mitigations: Enabled attack vectors: user_kernel, user_user, SMT mitigations: auto
+[    0.243643] Speculative Store Bypass: Mitigation: Speculative Store Bypass disabled via prctl
+[    0.244643] Transient Scheduler Attacks: Mitigation: Clear CPU buffers: user/kernel boundary
+[    0.245642] Spectre V2 : Mitigation: Retpolines
+[    0.246447] Speculative Return Stack Overflow: Mitigation: Safe RET
+[    0.246642] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization
+[    0.247642] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT
+[    0.248642] Spectre V2 : Enabling Restricted Speculation for firmware calls
+[    0.249645] Spectre V2 : mitigation: Enabling conditional Indirect Branch Prediction Barrier
+[    0.250643] active return thunk: srso_alias_return_thunk
+[    0.251667] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.252642] x86/fpu: Supporting XSAVE feature 0x002: 'SSE registers'
+[    0.253642] x86/fpu: Supporting XSAVE feature 0x004: 'AVX registers'
+[    0.254642] x86/fpu: Supporting XSAVE feature 0x200: 'Protection Keys User registers'
+[    0.255642] x86/fpu: Supporting XSAVE feature 0x800: 'Control-flow User registers'
+[    0.256642] x86/fpu: Supporting XSAVE feature 0x1000: 'Control-flow Kernel registers (KVM only)'
+[    0.257643] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.258642] x86/fpu: xstate_offset[9]:  832, xstate_sizes[9]:    8
+[    0.259642] x86/fpu: xstate_offset[11]:  840, xstate_sizes[11]:   16
+[    0.260642] x86/fpu: xstate_offset[12]:  856, xstate_sizes[12]:   24
+[    0.261642] x86/fpu: Enabled xstate features 0x1a07, context size is 880 bytes, using 'compacted' format.
+[    0.280027] pid_max: default: 32768 minimum: 301
+[    0.280794] SELinux:  Initializing.
+[    0.282465] Mount-cache hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.282647] Mountpoint-cache hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.284822] VFS: Finished mounting rootfs on nullfs
+[    0.286714] Running RCU synchronous self tests
+[    0.287505] Running RCU synchronous self tests
+[    0.287959] smpboot: CPU0: AMD Ryzen 7 5800X 8-Core Processor (family: 0x19, model: 0x21, stepping: 0x0)
+[    0.289449] Performance Events: Fam17h+ core perfctr, AMD PMU driver.
+[    0.289672] ... version:                   0
+[    0.290430] ... bit width:                 48
+[    0.290662] ... generic counters:          6
+[    0.291439] ... generic bitmap:            000000000000003f
+[    0.291646] ... fixed-purpose counters:    0
+[    0.292407] ... fixed-purpose bitmap:      0000000000000000
+[    0.292646] ... value mask:                0000ffffffffffff
+[    0.293640] ... max period:                00007fffffffffff
+[    0.294625] ... global_ctrl mask:          000000000000003f
+[    0.294947] signal: max sigframe size: 3376
+[    0.295771] rcu: Hierarchical SRCU implementation.
+[    0.296615] rcu: 	Max phase no-delay instances is 400.
+[    0.296849] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.306219] smp: Bringing up secondary CPUs ...
+[    0.307154] smpboot: x86: Booting SMP configuration:
+[    0.307693] .... node  #0, CPUs:      #1 #2 #3
+[    0.310007] smp: Brought up 1 node, 4 CPUs
+[    0.311429] smpboot: Total of 4 processors activated (30342.97 BogoMIPS)
+[    0.311864] Memory: 3976064K/4193772K available (17764K kernel code, 2961K rwdata, 5392K rodata, 4584K init, 30356K bss, 213344K reserved, 0K cma-reserved)
+[    0.314110] devtmpfs: initialized
+[    0.318203] Running RCU synchronous self tests
+[    0.318720] Running RCU synchronous self tests
+[    0.319719] Running RCU Tasks wait API self tests
+[    0.320819] Running RCU Tasks Trace wait API self tests
+[    0.321774] posixtimers hash table entries: 2048 (order: 6, 163840 bytes, linear)
+[    0.322745] futex hash table entries: 1024 (131072 bytes on 1 NUMA nodes, total 128 KiB, linear).
+[    0.324284] PM: RTC time: 20:04:03, date: 2026-10-29
+[    0.325111] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.327230] audit: initializing netlink subsys (disabled)
+[    0.327757] audit: type=2000 audit(1793304243.376:1): state=initialized audit_enabled=0 res=1
+[    0.328346] thermal_sys: Registered thermal governor 'step_wise'
+[    0.329679] Callback from call_rcu_tasks_trace() invoked.
+[    0.329736] cpuidle: using governor menu
+[    0.334027] PCI: Using configuration type 1 for base access
+[    0.334646] PCI: Using configuration type 1 for extended access
+[    0.335828] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.
+[    0.335920] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.335920] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.342302] ACPI: Added _OSI(Module Device)
+[    0.342306] ACPI: Added _OSI(Processor Device)
+[    0.342309] ACPI: Added _OSI(Processor Aggregator Device)
+[    0.349665] ACPI: 1 ACPI AML tables successfully acquired and loaded
+[    0.353925] ACPI: \_SB_: platform _OSC: OS support mask [002a7eee]
+[    0.355413] ACPI: Interpreter enabled
+[    0.355515] ACPI: PM: (supports S0 S3 S4 S5)
+[    0.355529] ACPI: Using IOAPIC for interrupt routing
+[    0.355621] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    0.355623] PCI: Using E820 reservations for host bridge windows
+[    0.356174] ACPI: Enabled 2 GPEs in block 00 to 0F
+[    0.376337] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])
+[    0.377493] PCI host bridge to bus 0000:00
+[    0.377512] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]
+[    0.377516] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]
+[    0.377519] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    0.377521] pci_bus 0000:00: root bus resource [mem 0xc0000000-0xfebfffff window]
+[    0.377523] pci_bus 0000:00: root bus resource [mem 0xe0000000000-0xe007fffffff window]
+[    0.377526] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    0.378082] pci 0000:00:00.0: [8086:1237] type 00 class 0x060000 conventional PCI endpoint
+[    0.380140] pci 0000:00:01.0: [8086:7000] type 00 class 0x060100 conventional PCI endpoint
+[    0.381855] pci 0000:00:01.1: [8086:7010] type 00 class 0x010180 conventional PCI endpoint
+[    0.383061] pci 0000:00:01.1: BAR 4 [io  0xc120-0xc12f]
+[    0.383158] pci 0000:00:01.1: BAR 0 [io  0x01f0-0x01f7]: legacy IDE quirk
+[    0.383160] pci 0000:00:01.1: BAR 1 [io  0x03f6]: legacy IDE quirk
+[    0.383162] pci 0000:00:01.1: BAR 2 [io  0x0170-0x0177]: legacy IDE quirk
+[    0.383163] pci 0000:00:01.1: BAR 3 [io  0x0376]: legacy IDE quirk
+[    0.384173] pci 0000:00:01.3: [8086:7113] type 00 class 0x068000 conventional PCI endpoint
+[    0.385161] pci 0000:00:01.3: quirk: [io  0x0600-0x063f] claimed by PIIX4 ACPI
+[    0.385185] pci 0000:00:01.3: quirk: [io  0x0700-0x070f] claimed by PIIX4 SMB
+[    0.386271] pci 0000:00:02.0: [1234:1111] type 00 class 0x030000 conventional PCI endpoint
+[    0.387608] pci 0000:00:02.0: BAR 0 [mem 0xfd000000-0xfdffffff pref]
+[    0.387646] pci 0000:00:02.0: BAR 2 [mem 0xfebf0000-0xfebf0fff]
+[    0.387734] pci 0000:00:02.0: ROM [mem 0xfebe0000-0xfebeffff pref]
+[    0.387840] pci 0000:00:02.0: Video device with shadowed ROM at [mem 0x000c0000-0x000dffff]
+[    0.388822] pci 0000:00:03.0: [8086:100e] type 00 class 0x020000 conventional PCI endpoint
+[    0.390391] pci 0000:00:03.0: BAR 0 [mem 0xfebc0000-0xfebdffff]
+[    0.390405] pci 0000:00:03.0: BAR 1 [io  0xc080-0xc0bf]
+[    0.390506] pci 0000:00:03.0: ROM [mem 0xfeb80000-0xfebbffff pref]
+[    0.394209] pci 0000:00:04.0: [1af4:1009] type 00 class 0x000200 conventional PCI endpoint
+[    0.395364] pci 0000:00:04.0: BAR 0 [io  0xc0c0-0xc0ff]
+[    0.395379] pci 0000:00:04.0: BAR 1 [mem 0xfebf1000-0xfebf1fff]
+[    0.395444] pci 0000:00:04.0: BAR 4 [mem 0xe0000000000-0xe0000003fff 64bit pref]
+[    0.399987] pci 0000:00:05.0: [1af4:1009] type 00 class 0x000200 conventional PCI endpoint
+[    0.402303] pci 0000:00:05.0: BAR 0 [io  0xc100-0xc11f]
+[    0.402318] pci 0000:00:05.0: BAR 1 [mem 0xfebf2000-0xfebf2fff]
+[    0.402381] pci 0000:00:05.0: BAR 4 [mem 0xe0000004000-0xe0000007fff 64bit pref]
+[    0.408372] pci 0000:00:06.0: [1af4:1001] type 00 class 0x010000 conventional PCI endpoint
+[    0.409605] pci 0000:00:06.0: BAR 0 [io  0xc000-0xc07f]
+[    0.409620] pci 0000:00:06.0: BAR 1 [mem 0xfebf3000-0xfebf3fff]
+[    0.409689] pci 0000:00:06.0: BAR 4 [mem 0xe0000008000-0xe000000bfff 64bit pref]
+[    0.421640] ACPI: PCI: Interrupt link LNKA configured for IRQ 10
+[    0.422048] ACPI: PCI: Interrupt link LNKB configured for IRQ 10
+[    0.422436] ACPI: PCI: Interrupt link LNKC configured for IRQ 11
+[    0.422826] ACPI: PCI: Interrupt link LNKD configured for IRQ 11
+[    0.423016] ACPI: PCI: Interrupt link LNKS configured for IRQ 9
+[    0.424845] iommu: Default domain type: Translated
+[    0.424847] iommu: DMA domain TLB invalidation policy: lazy mode
+[    0.427846] SCSI subsystem initialized
+[    0.427993] pps_core: LinuxPPS API ver. 1 registered
+[    0.427994] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.428011] PTP clock support registered
+[    0.429971] NetLabel: Initializing
+[    0.429973] NetLabel:  domain hash size = 128
+[    0.429974] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO
+[    0.430028] NetLabel:  unlabeled traffic allowed by default
+[    0.430480] PCI: Using ACPI for IRQ routing
+[    0.430916] e820: register RAM buffer resource [mem 0x0009fc00-0x0009ffff]
+[    0.430920] e820: register RAM buffer resource [mem 0xbffdd000-0xbfffffff]
+[    0.431112] pci 0000:00:02.0: vgaarb: setting as boot VGA device
+[    0.431112] pci 0000:00:02.0: vgaarb: bridge control possible
+[    0.431112] pci 0000:00:02.0: vgaarb: VGA device added: decodes=io+mem,owns=io+mem,locks=none
+[    0.431112] vgaarb: loaded
+[    0.431112] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0
+[    0.431112] hpet0: 3 comparators, 64-bit 100.000000 MHz counter
+[    0.435595] clocksource: Switched to clocksource kvm-clock
+[    0.439623] VFS: Disk quotas dquot_6.6.0
+[    0.439641] VFS: Dquot-cache hash table entries: 512 (4096 bytes)
+[    0.440693] pnp: PnP ACPI init
+[    0.441822] ACPI: IRQ 4 override to edge(!), high(!)
+[    0.442854] pnp: PnP ACPI: found 5 devices
+[    0.460400] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns
+[    0.460504] NET: Registered PF_INET protocol family
+[    0.460598] IP idents hash table entries: 65536 (order: 7, 524288 bytes, linear)
+[    0.461527] tcp_listen_portaddr_hash hash table entries: 2048 (order: 6, 163840 bytes, linear)
+[    0.461697] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.461713] TCP established hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    0.461752] TCP bind hash table entries: 32768 (order: 11, 5242880 bytes, vmalloc hugepage)
+[    0.464290] TCP: Hash tables configured (established 32768 bind 32768)
+[    0.464392] UDP hash table entries: 2048 (order: 8, 622592 bytes, linear)
+[    0.464698] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.465218] RPC: Registered named UNIX socket transport module.
+[    0.465220] RPC: Registered udp transport module.
+[    0.465222] RPC: Registered tcp transport module.
+[    0.465223] RPC: Registered tcp-with-tls transport module.
+[    0.465224] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.465232] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]
+[    0.465235] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]
+[    0.465237] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]
+[    0.465239] pci_bus 0000:00: resource 7 [mem 0xc0000000-0xfebfffff window]
+[    0.465240] pci_bus 0000:00: resource 8 [mem 0xe0000000000-0xe007fffffff window]
+[    0.465428] pci 0000:00:01.0: PIIX3: Enabling Passive Release
+[    0.465447] pci 0000:00:00.0: Limiting direct PCI/PCI transfers
+[    0.465615] PCI: CLS 0 bytes, default 64
+[    0.465758] PCI-DMA: Using software bounce buffering for IO (SWIOTLB)
+[    0.465759] software IO TLB: mapped [mem 0x00000000bbfdd000-0x00000000bffdd000] (64MB)
+[    0.465794] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x6d5815bbf2a, max_idle_ns: 881590783532 ns
+[    0.492336] Initialise system trusted keyrings
+[    0.492567] workingset: timestamp_bits=56 (anon: 51) max_order=20 bucket_order=0 (anon: 0)
+[    0.493393] NFS: Registering the id_resolver key type
+[    0.493416] Key type id_resolver registered
+[    0.493418] Key type id_legacy registered
+[    0.493424] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.493465] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.493505] ntfs3: Enabled Linux POSIX ACLs support
+[    0.493506] ntfs3: Read-only LZX/Xpress compression included
+[    0.493730] fuse: init (API version 7.46)
+[    0.493992] 9p: Installing v9fs 9p2000 file system support
+[    0.505235] Key type asymmetric registered
+[    0.505248] Asymmetric key parser 'x509' registered
+[    0.505303] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 251)
+[    0.505493] io scheduler mq-deadline registered
+[    0.505495] io scheduler kyber registered
+[    0.507258] input: Power Button as /devices/platform/LNXPWRBN:00/input/input0
+[    0.507608] ACPI: button: Power Button [PWRF]
+[    0.514293] ACPI: \_SB_.LNKD: Enabled at IRQ 11
+[    0.520522] ACPI: \_SB_.LNKA: Enabled at IRQ 10
+[    0.526484] ACPI: \_SB_.LNKB: Enabled at IRQ 10
+[    0.528493] Callback from call_rcu_tasks() invoked.
+[    0.528680] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    0.531695] 00:04: ttyS0 I/O:0x3f8 (irq = 4, base_baud = 115200) is a 16550A
+[    0.536355] Non-volatile memory driver v1.3
+[    0.553510] loop: module loaded
+[    0.553729] virtio_blk virtio2: 4/0/0 default/read/poll queues
+[    0.556879] virtio_blk virtio2: [vda] 8388608 512-byte logical blocks (4.29 GB/4.00 GiB)
+[    0.561313]  vda:
+[    0.565288] scsi host0: ata_piix
+[    0.566113] scsi host1: ata_piix
+[    0.566494] ata1: PATA max MWDMA2 cmd 0x1f0 ctl 0x3f6 bmdma 0xc120 irq 14 lpm-pol 0
+[    0.566496] ata2: PATA max MWDMA2 cmd 0x170 ctl 0x376 bmdma 0xc128 irq 15 lpm-pol 0
+[    0.567981] e100: Intel(R) PRO/100 Network Driver
+[    0.567982] e100: Copyright(c) 1999-2006 Intel Corporation
+[    0.568069] e1000: Intel(R) PRO/1000 Network Driver
+[    0.568070] e1000: Copyright (c) 1999-2006 Intel Corporation.
+[    0.572300] ACPI: \_SB_.LNKC: Enabled at IRQ 11
+[    0.727237] ata2: found unknown device (class 0)
+[    0.728158] ata2.00: ATAPI: QEMU DVD-ROM, 2.5+, max UDMA/100
+[    0.730948] scsi 1:0:0:0: CD-ROM            QEMU     QEMU DVD-ROM     2.5+ PQ: 0 ANSI: 5
+[    0.748028] sr 1:0:0:0: [sr0] scsi3-mmc drive: 4x/4x cd/rw xa/form2 tray
+[    0.760514] cdrom: Uniform CD-ROM driver Revision: 3.20
+[    0.771659] sr 1:0:0:0: Attached scsi generic sg0 type 5
+[    0.894154] e1000 0000:00:03.0 eth0: (PCI:33MHz:32-bit) 52:54:00:12:34:56
+[    0.894174] e1000 0000:00:03.0 eth0: Intel(R) PRO/1000 Network Connection
+[    0.894257] e1000e: Intel(R) PRO/1000 Network Driver
+[    0.894258] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    0.894327] sky2: driver version 1.30
+[    0.894789] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12
+[    0.896236] serio: i8042 KBD port at 0x60,0x64 irq 1
+[    0.896306] serio: i8042 AUX port at 0x60,0x64 irq 12
+[    0.897685] rtc_cmos PNP0B00:00: RTC can wake from S4
+[    0.899800] rtc_cmos PNP0B00:00: registered as rtc0
+[    0.900152] rtc_cmos PNP0B00:00: alarms up to one day, y3k, 242 bytes nvram, hpet irqs
+[    0.900920] device-mapper: ioctl: 4.50.0-ioctl (2025-04-28) initialised: dm-devel@lists.linux.dev
+[    0.901458] nf_conntrack_irc: The irc conntrack helper is scheduled for removal.
+[    0.901458] Please contact the netfilter-devel mailing list if you still need this.
+[    0.901777] Initializing XFRM netlink socket
+[    0.901861] NET: Registered PF_INET6 protocol family
+[    0.903370] Segment Routing with IPv6
+[    0.903393] In-situ OAM (IOAM) with IPv6
+[    0.903461] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    0.904580] NET: Registered PF_PACKET protocol family
+[    0.904687] 9pnet: Installing 9P2000 support
+[    0.908328] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input1
+[    0.909364] Key type dns_resolver registered
+[    0.914942] IPI shorthand broadcast: enabled
+[    0.925988] input: ImExPS/2 Generic Explorer Mouse as /devices/platform/i8042/serio1/input/input3
+[    0.952312] sched_clock: Marking stable (788004385, 163998161)->(985203845, -33201299)
+[    0.952944] registered taskstats version 1
+[    0.952965] Loading compiled-in X.509 certificates
+[    0.991236] Demotion targets for Node 0: null
+[    0.991535] PM:   Magic number: 14:839:94
+[    0.991607] netconsole: network logging started
+[    0.995223] md: Waiting for all devices to be available before autodetect
+[    0.995225] md: If you don't use raid, use raid=noautodetect
+[    0.995227] md: Autodetecting RAID arrays.
+[    0.995242] md: autorun ...
+[    0.995243] md: ... autorun DONE.
+[    0.996525] VFS: Mounted root (9p filesystem) readonly on device 0:22.
+[    0.997029] devtmpfs: mounted
+[    0.997297] VFS: Pivoted into new rootfs
+[    1.000267] Freeing unused kernel image (initmem) memory: 4584K
+[    1.000274] Write protecting the kernel read-only data: 24576k
+[    1.002942] Freeing unused kernel image (text/rodata gap) memory: 664K
+[    1.003959] Freeing unused kernel image (rodata/data gap) memory: 752K
+[    1.046497] x86/mm: Checked W+X mappings: passed, no W+X pages found.
+[    1.046506] Run /tmp/ntfs3-lab/repro/guest-init.sh as init process
+[    1.073662] mount (73) used greatest stack depth: 12440 bytes left
+[    1.098796] mount (78) used greatest stack depth: 12064 bytes left
+mounted /dev/vda (ntfs3 defaults); running /run/lab/repro/tests/d1-resident.sh
+[   27.239140] clocksource: Watchdog remote CPU 1 read timed out
+[   41.159064] INFO: task ntfs3-stress:85 blocked in I/O wait for more than 20 seconds.
+[   41.159070]       Not tainted 7.3.0 #1
+[   41.159071] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   41.159072] task:ntfs3-stress    state:D stack:13392 pid:85    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   41.159078] Call Trace:
+[   41.159079]  <TASK>
+[   41.159084]  __schedule+0x53a/0x13a0
+[   41.159103]  schedule+0x36/0x100
+[   41.159107]  io_schedule+0x41/0x60
+[   41.159111]  __filemap_get_folio_mpol+0x353/0x4f0
+[   41.159116]  ? __filemap_get_folio_mpol+0x347/0x4f0
+[   41.159123]  ? __pfx_wake_page_function+0x10/0x10
+[   41.159130]  attr_make_nonresident+0x307/0x4a0
+[   41.159142]  attr_set_size_ex+0x7f7/0x12c0
+[   41.159148]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159165]  ntfs_set_size+0xa1/0x100
+[   41.159172]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159175]  ntfs_file_write_iter+0x690/0xc10
+[   41.159178]  ? lock_acquire+0xcf/0x300
+[   41.159182]  ? ksys_write+0x7c/0x110
+[   41.159188]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159191]  ? lock_is_held_type+0xa8/0x150
+[   41.159194]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159196]  ? lock_is_held_type+0xa8/0x150
+[   41.159201]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159203]  vfs_write+0x271/0x690
+[   41.159214]  ksys_write+0x7c/0x110
+[   41.159220]  do_syscall_64+0x10e/0x5e0
+[   41.159223]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159235]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   41.159239] RIP: 0033:0x7f690ff368f2
+[   41.159241] RSP: 002b:00007f690fe91cb8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[   41.159244] RAX: ffffffffffffffda RBX: 0000000000000240 RCX: 00007f690ff368f2
+[   41.159245] RDX: 0000000000000040 RSI: 00007f690fe91cf0 RDI: 0000000000000005
+[   41.159246] RBP: 00007f690fe91ce0 R08: 0000000000000000 R09: 0000000000000000
+[   41.159247] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe9997cdf4
+[   41.159249] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   41.159259]  </TASK>
+[   41.159261] INFO: task ntfs3-stress:86 blocked for more than 20 seconds.
+[   41.159262]       Not tainted 7.3.0 #1
+[   41.159264] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   41.159264] task:ntfs3-stress    state:D stack:12992 pid:86    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   41.159268] Call Trace:
+[   41.159269]  <TASK>
+[   41.159273]  __schedule+0x53a/0x13a0
+[   41.159282]  schedule+0x36/0x100
+[   41.159286]  schedule_preempt_disabled+0x11/0x20
+[   41.159288]  rwsem_down_read_slowpath+0x2b1/0x6c0
+[   41.159300]  down_read+0x153/0x230
+[   41.159303]  attr_data_get_block+0x51/0x130
+[   41.159309]  ntfs_iomap_begin+0x125/0x4a0
+[   41.159319]  ntfs_iomap_next+0x101/0x2d0
+[   41.159322]  ? lock_is_held_type+0xa8/0x150
+[   41.159327]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159329]  ? __pfx_ntfs_iomap_next+0x10/0x10
+[   41.159332]  iomap_iter+0x56/0x400
+[   41.159339]  iomap_read_folio+0xd8/0x1f0
+[   41.159355]  ntfs_read_folio+0xb8/0x110
+[   41.159362]  filemap_read_folio+0x1a/0xa0
+[   41.159366]  filemap_get_pages+0x383/0x830
+[   41.159380]  filemap_read+0x12a/0x3f0
+[   41.159404]  vfs_read+0x34c/0x4a0
+[   41.159415]  __x64_sys_pread64+0xa5/0x100
+[   41.159421]  do_syscall_64+0x10e/0x5e0
+[   41.159423]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159428]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   41.159430] RIP: 0033:0x7f690ff368f2
+[   41.159432] RSP: 002b:00007f690f68fcf8 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   41.159434] RAX: ffffffffffffffda RBX: 0000000000000007 RCX: 00007f690ff368f2
+[   41.159435] RDX: 0000000000001000 RSI: 00007f690f68fd30 RDI: 0000000000000007
+[   41.159437] RBP: 00007f690f68fd20 R08: 0000000000000000 R09: 0000000000000000
+[   41.159438] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000021
+[   41.159439] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   41.159450]  </TASK>
+[   41.159452] INFO: task ntfs3-stress:86 <reader> blocked on an rw-semaphore likely owned by task ntfs3-stress:85 <writer>
+[   41.159454] INFO: task ntfs3-stress:87 blocked in I/O wait for more than 20 seconds.
+[   41.159455]       Not tainted 7.3.0 #1
+[   41.159456] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   41.159457] task:ntfs3-stress    state:D stack:13008 pid:87    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   41.159461] Call Trace:
+[   41.159462]  <TASK>
+[   41.159465]  __schedule+0x53a/0x13a0
+[   41.159474]  schedule+0x36/0x100
+[   41.159477]  io_schedule+0x41/0x60
+[   41.159481]  __filemap_get_folio_mpol+0x353/0x4f0
+[   41.159485]  ? __filemap_get_folio_mpol+0x347/0x4f0
+[   41.159491]  ? __pfx_wake_page_function+0x10/0x10
+[   41.159497]  attr_make_nonresident+0x307/0x4a0
+[   41.159508]  attr_set_size_ex+0x7f7/0x12c0
+[   41.159514]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159531]  ntfs_set_size+0xa1/0x100
+[   41.159537]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159539]  ntfs_file_write_iter+0x690/0xc10
+[   41.159542]  ? lock_acquire+0xcf/0x300
+[   41.159545]  ? ksys_write+0x7c/0x110
+[   41.159551]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159553]  ? lock_is_held_type+0xa8/0x150
+[   41.159555]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159558]  ? lock_is_held_type+0xa8/0x150
+[   41.159562]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159565]  vfs_write+0x271/0x690
+[   41.159576]  ksys_write+0x7c/0x110
+[   41.159581]  do_syscall_64+0x10e/0x5e0
+[   41.159584]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159588]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   41.159591] RIP: 0033:0x7f690ff368f2
+[   41.159592] RSP: 002b:00007f690ee8fcb8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[   41.159594] RAX: ffffffffffffffda RBX: 0000000000000240 RCX: 00007f690ff368f2
+[   41.159595] RDX: 0000000000000040 RSI: 00007f690ee8fcf0 RDI: 0000000000000009
+[   41.159597] RBP: 00007f690ee8fce0 R08: 0000000000000000 R09: 0000000000000000
+[   41.159598] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe9997ddf8
+[   41.159599] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   41.159610]  </TASK>
+[   41.159611] INFO: task ntfs3-stress:88 blocked for more than 20 seconds.
+[   41.159612]       Not tainted 7.3.0 #1
+[   41.159613] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   41.159614] task:ntfs3-stress    state:D stack:13328 pid:88    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   41.159618] Call Trace:
+[   41.159618]  <TASK>
+[   41.159622]  __schedule+0x53a/0x13a0
+[   41.159631]  schedule+0x36/0x100
+[   41.159634]  schedule_preempt_disabled+0x11/0x20
+[   41.159637]  rwsem_down_read_slowpath+0x2b1/0x6c0
+[   41.159647]  down_read+0x153/0x230
+[   41.159651]  attr_data_get_block+0x51/0x130
+[   41.159656]  ntfs_iomap_begin+0x125/0x4a0
+[   41.159666]  ntfs_iomap_next+0x101/0x2d0
+[   41.159669]  ? lock_is_held_type+0xa8/0x150
+[   41.159674]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159676]  ? __pfx_ntfs_iomap_next+0x10/0x10
+[   41.159679]  iomap_iter+0x56/0x400
+[   41.159684]  iomap_read_folio+0xd8/0x1f0
+[   41.159701]  ntfs_read_folio+0xb8/0x110
+[   41.159707]  filemap_read_folio+0x1a/0xa0
+[   41.159711]  filemap_get_pages+0x383/0x830
+[   41.159724]  filemap_read+0x12a/0x3f0
+[   41.159749]  vfs_read+0x34c/0x4a0
+[   41.159760]  __x64_sys_pread64+0xa5/0x100
+[   41.159765]  do_syscall_64+0x10e/0x5e0
+[   41.159768]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159772]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   41.159774] RIP: 0033:0x7f690ff368f2
+[   41.159776] RSP: 002b:00007f690e68dcf8 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   41.159778] RAX: ffffffffffffffda RBX: 0000000000000006 RCX: 00007f690ff368f2
+[   41.159779] RDX: 0000000000001000 RSI: 00007f690e68dd30 RDI: 0000000000000006
+[   41.159780] RBP: 00007f690e68dd20 R08: 0000000000000000 R09: 0000000000000000
+[   41.159781] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000021
+[   41.159783] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   41.159793]  </TASK>
+[   41.159795] INFO: task ntfs3-stress:88 <reader> blocked on an rw-semaphore likely owned by task ntfs3-stress:87 <writer>
+[   41.159796] INFO: task ntfs3-stress:89 blocked in I/O wait for more than 20 seconds.
+[   41.159798]       Not tainted 7.3.0 #1
+[   41.159799] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   41.159800] task:ntfs3-stress    state:D stack:13096 pid:89    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   41.159803] Call Trace:
+[   41.159804]  <TASK>
+[   41.159807]  __schedule+0x53a/0x13a0
+[   41.159816]  schedule+0x36/0x100
+[   41.159819]  io_schedule+0x41/0x60
+[   41.159823]  __filemap_get_folio_mpol+0x353/0x4f0
+[   41.159826]  ? __filemap_get_folio_mpol+0x347/0x4f0
+[   41.159833]  ? __pfx_wake_page_function+0x10/0x10
+[   41.159839]  attr_make_nonresident+0x307/0x4a0
+[   41.159850]  attr_set_size_ex+0x7f7/0x12c0
+[   41.159856]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159872]  ntfs_set_size+0xa1/0x100
+[   41.159878]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159881]  ntfs_file_write_iter+0x690/0xc10
+[   41.159884]  ? lock_acquire+0xcf/0x300
+[   41.159886]  ? ksys_write+0x7c/0x110
+[   41.159892]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159894]  ? lock_is_held_type+0xa8/0x150
+[   41.159897]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159899]  ? lock_is_held_type+0xa8/0x150
+[   41.159904]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159907]  vfs_write+0x271/0x690
+[   41.159917]  ksys_write+0x7c/0x110
+[   41.159923]  do_syscall_64+0x10e/0x5e0
+[   41.159926]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.159930]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   41.159932] RIP: 0033:0x7f690ff368f2
+[   41.159934] RSP: 002b:00007f690de8dcb8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[   41.159936] RAX: ffffffffffffffda RBX: 0000000000000240 RCX: 00007f690ff368f2
+[   41.159937] RDX: 0000000000000040 RSI: 00007f690de8dcf0 RDI: 0000000000000008
+[   41.159938] RBP: 00007f690de8dce0 R08: 0000000000000000 R09: 0000000000000000
+[   41.159939] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe9997edfc
+[   41.159940] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   41.159951]  </TASK>
+[   41.159952] INFO: task ntfs3-stress:90 blocked for more than 20 seconds.
+[   41.159953]       Not tainted 7.3.0 #1
+[   41.159954] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   41.159955] task:ntfs3-stress    state:D stack:13360 pid:90    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   41.159958] Call Trace:
+[   41.159959]  <TASK>
+[   41.159963]  __schedule+0x53a/0x13a0
+[   41.159972]  schedule+0x36/0x100
+[   41.159975]  schedule_preempt_disabled+0x11/0x20
+[   41.159978]  rwsem_down_read_slowpath+0x2b1/0x6c0
+[   41.159988]  down_read+0x153/0x230
+[   41.159992]  attr_data_get_block+0x51/0x130
+[   41.160020]  ntfs_iomap_begin+0x125/0x4a0
+[   41.160034]  ntfs_iomap_next+0x101/0x2d0
+[   41.160039]  ? lock_is_held_type+0xa8/0x150
+[   41.160046]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160050]  ? __pfx_ntfs_iomap_next+0x10/0x10
+[   41.160053]  iomap_iter+0x56/0x400
+[   41.160059]  iomap_read_folio+0xd8/0x1f0
+[   41.160075]  ntfs_read_folio+0xb8/0x110
+[   41.160082]  filemap_read_folio+0x1a/0xa0
+[   41.160086]  filemap_get_pages+0x383/0x830
+[   41.160099]  filemap_read+0x12a/0x3f0
+[   41.160123]  vfs_read+0x34c/0x4a0
+[   41.160134]  __x64_sys_pread64+0xa5/0x100
+[   41.160140]  do_syscall_64+0x10e/0x5e0
+[   41.160143]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160147]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   41.160149] RIP: 0033:0x7f690ff368f2
+[   41.160151] RSP: 002b:00007f690d68bcf8 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   41.160154] RAX: ffffffffffffffda RBX: 0000000000000004 RCX: 00007f690ff368f2
+[   41.160155] RDX: 0000000000001000 RSI: 00007f690d68bd30 RDI: 0000000000000004
+[   41.160156] RBP: 00007f690d68bd20 R08: 0000000000000000 R09: 0000000000000000
+[   41.160158] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000021
+[   41.160159] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   41.160169]  </TASK>
+[   41.160172] INFO: task ntfs3-stress:90 <reader> blocked on an rw-semaphore likely owned by task ntfs3-stress:89 <writer>
+[   41.160174] INFO: task ntfs3-stress:91 blocked in I/O wait for more than 20 seconds.
+[   41.160175]       Not tainted 7.3.0 #1
+[   41.160177] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   41.160177] task:ntfs3-stress    state:D stack:13496 pid:91    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   41.160182] Call Trace:
+[   41.160183]  <TASK>
+[   41.160186]  __schedule+0x53a/0x13a0
+[   41.160195]  schedule+0x36/0x100
+[   41.160199]  io_schedule+0x41/0x60
+[   41.160202]  __filemap_get_folio_mpol+0x353/0x4f0
+[   41.160206]  ? __filemap_get_folio_mpol+0x347/0x4f0
+[   41.160212]  ? __pfx_wake_page_function+0x10/0x10
+[   41.160218]  attr_make_nonresident+0x307/0x4a0
+[   41.160235]  attr_set_size_ex+0x7f7/0x12c0
+[   41.160241]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160258]  ntfs_set_size+0xa1/0x100
+[   41.160263]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160266]  ntfs_file_write_iter+0x690/0xc10
+[   41.160269]  ? lock_acquire+0xcf/0x300
+[   41.160272]  ? ksys_write+0x7c/0x110
+[   41.160278]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160280]  ? lock_is_held_type+0xa8/0x150
+[   41.160282]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160285]  ? lock_is_held_type+0xa8/0x150
+[   41.160289]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160292]  vfs_write+0x271/0x690
+[   41.160303]  ksys_write+0x7c/0x110
+[   41.160308]  do_syscall_64+0x10e/0x5e0
+[   41.160311]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160315]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   41.160317] RIP: 0033:0x7f690ff368f2
+[   41.160319] RSP: 002b:00007f690ce8bcb8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[   41.160321] RAX: ffffffffffffffda RBX: 0000000000000240 RCX: 00007f690ff368f2
+[   41.160322] RDX: 0000000000000040 RSI: 00007f690ce8bcf0 RDI: 000000000000000a
+[   41.160323] RBP: 00007f690ce8bce0 R08: 0000000000000000 R09: 0000000000000000
+[   41.160325] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe9997fe00
+[   41.160326] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   41.160336]  </TASK>
+[   41.160337] INFO: task ntfs3-stress:92 blocked for more than 20 seconds.
+[   41.160339]       Not tainted 7.3.0 #1
+[   41.160340] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[   41.160341] task:ntfs3-stress    state:D stack:13184 pid:92    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   41.160344] Call Trace:
+[   41.160345]  <TASK>
+[   41.160349]  __schedule+0x53a/0x13a0
+[   41.160358]  schedule+0x36/0x100
+[   41.160361]  schedule_preempt_disabled+0x11/0x20
+[   41.160364]  rwsem_down_read_slowpath+0x2b1/0x6c0
+[   41.160374]  down_read+0x153/0x230
+[   41.160378]  attr_data_get_block+0x51/0x130
+[   41.160383]  ntfs_iomap_begin+0x125/0x4a0
+[   41.160393]  ntfs_iomap_next+0x101/0x2d0
+[   41.160396]  ? lock_is_held_type+0xa8/0x150
+[   41.160401]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160403]  ? __pfx_ntfs_iomap_next+0x10/0x10
+[   41.160406]  iomap_iter+0x56/0x400
+[   41.160411]  iomap_read_folio+0xd8/0x1f0
+[   41.160428]  ntfs_read_folio+0xb8/0x110
+[   41.160434]  filemap_read_folio+0x1a/0xa0
+[   41.160438]  filemap_get_pages+0x383/0x830
+[   41.160451]  filemap_read+0x12a/0x3f0
+[   41.160475]  vfs_read+0x34c/0x4a0
+[   41.160486]  __x64_sys_pread64+0xa5/0x100
+[   41.160492]  do_syscall_64+0x10e/0x5e0
+[   41.160495]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   41.160499]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   41.160501] RIP: 0033:0x7f690ff368f2
+[   41.160503] RSP: 002b:00007f690c689cf8 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   41.160505] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 00007f690ff368f2
+[   41.160506] RDX: 0000000000001000 RSI: 00007f690c689d30 RDI: 0000000000000003
+[   41.160507] RBP: 00007f690c689d20 R08: 0000000000000000 R09: 0000000000000000
+[   41.160508] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000021
+[   41.160509] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   41.160520]  </TASK>
+[   41.160522] INFO: task ntfs3-stress:92 <reader> blocked on an rw-semaphore likely owned by task ntfs3-stress:91 <writer>
+[   41.160524] 
+[   41.160524] Showing all locks held in the system:
+[   41.160526] locks held by pr/ttyS0/41: 2, last CPU#0:
+[   41.160528]  #0: ffffffff82961a18 (console_srcu){....}-{0:0}, at: console_srcu_read_lock+0x44/0x60
+[   41.160537]  #1: ffffffff850d0738 (&port_lock_key){-...}-{3:3}, at: univ8250_console_device_lock+0x20/0x30
+[   41.160545] locks held by khungtaskd/42: 1, last CPU#1:
+[   41.160546]  #0: ffffffff82964680 (rcu_read_lock){....}-{1:3}, at: debug_show_all_locks+0x3d/0x17f
+[   41.160553] locks held by ntfs3-stress/85: 5, on CPU#1:
+[   41.160555]  #0: ffff8881009b1300 (&f->f_pos_lock){+.+.}-{4:4}, at: fdget_pos+0x7a/0xb0
+[   41.160562]  #1: ffff888100cbe470 (sb_writers#6){.+.+}-{0:0}, at: ksys_write+0x7c/0x110
+[   41.160570]  #2: ffff888101d483c0 (&sb->s_type->i_mutex_key#8){+.+.}-{4:4}, at: ntfs_file_write_iter+0x58/0xc10
+[   41.160576]  #3: ffff888101d48100 (&ni->ni_lock#3/5){+.+.}-{4:4}, at: ntfs_set_size+0x5b/0x100
+[   41.160584]  #4: ffff888101d481b8 (&ni->file.run_lock#3){++++}-{4:4}, at: ntfs_set_size+0x67/0x100
+[   41.160591] locks held by ntfs3-stress/86: 2, on CPU#2:
+[   41.160593]  #0: ffff888101d48560 (mapping.invalidate_lock#3){.+.+}-{4:4}, at: filemap_get_pages+0x1ce/0x830
+[   41.160600]  #1: ffff888101d481b8 (&ni->file.run_lock#3){++++}-{4:4}, at: attr_data_get_block+0x51/0x130
+[   41.160606] locks held by ntfs3-stress/87: 5, on CPU#3:
+[   41.160608]  #0: ffff8881018f3c00 (&f->f_pos_lock){+.+.}-{4:4}, at: fdget_pos+0x7a/0xb0
+[   41.160613]  #1: ffff888100cbe470 (sb_writers#6){.+.+}-{0:0}, at: ksys_write+0x7c/0x110
+[   41.160620]  #2: ffff8881006c4230 (&sb->s_type->i_mutex_key#8){+.+.}-{4:4}, at: ntfs_file_write_iter+0x58/0xc10
+[   41.160627]  #3: ffff8881006c3f70 (&ni->ni_lock#3/5){+.+.}-{4:4}, at: ntfs_set_size+0x5b/0x100
+[   41.160635]  #4: ffff8881006c4028 (&ni->file.run_lock#3){++++}-{4:4}, at: ntfs_set_size+0x67/0x100
+[   41.160641] locks held by ntfs3-stress/88: 2, on CPU#0:
+[   41.160643]  #0: ffff8881006c43d0 (mapping.invalidate_lock#3){.+.+}-{4:4}, at: filemap_get_pages+0x1ce/0x830
+[   41.160650]  #1: ffff8881006c4028 (&ni->file.run_lock#3){++++}-{4:4}, at: attr_data_get_block+0x51/0x130
+[   41.160656] locks held by ntfs3-stress/89: 5, on CPU#0:
+[   41.160657]  #0: ffff8881009b1180 (&f->f_pos_lock){+.+.}-{4:4}, at: fdget_pos+0x7a/0xb0
+[   41.160663]  #1: ffff888100cbe470 (sb_writers#6){.+.+}-{0:0}, at: ksys_write+0x7c/0x110
+[   41.160670]  #2: ffff8881006c1890 (&sb->s_type->i_mutex_key#8){+.+.}-{4:4}, at: ntfs_file_write_iter+0x58/0xc10
+[   41.160677]  #3: ffff8881006c15d0 (&ni->ni_lock#3/5){+.+.}-{4:4}, at: ntfs_set_size+0x5b/0x100
+[   41.160684]  #4: ffff8881006c1688 (&ni->file.run_lock#3){++++}-{4:4}, at: ntfs_set_size+0x67/0x100
+[   41.160691] locks held by ntfs3-stress/90: 2, on CPU#2:
+[   41.160692]  #0: ffff8881006c1a30 (mapping.invalidate_lock#3){.+.+}-{4:4}, at: filemap_get_pages+0x1ce/0x830
+[   41.160699]  #1: ffff8881006c1688 (&ni->file.run_lock#3){++++}-{4:4}, at: attr_data_get_block+0x51/0x130
+[   41.160706] locks held by ntfs3-stress/91: 5, on CPU#3:
+[   41.160707]  #0: ffff888101711300 (&f->f_pos_lock){+.+.}-{4:4}, at: fdget_pos+0x7a/0xb0
+[   41.160713]  #1: ffff888100cbe470 (sb_writers#6){.+.+}-{0:0}, at: ksys_write+0x7c/0x110
+[   41.160720]  #2: ffff888101df72c0 (&sb->s_type->i_mutex_key#8){+.+.}-{4:4}, at: ntfs_file_write_iter+0x58/0xc10
+[   41.160726]  #3: ffff888101df7000 (&ni->ni_lock#3/5){+.+.}-{4:4}, at: ntfs_set_size+0x5b/0x100
+[   41.160734]  #4: ffff888101df70b8 (&ni->file.run_lock#3){++++}-{4:4}, at: ntfs_set_size+0x67/0x100
+[   41.160741] locks held by ntfs3-stress/92: 2, on CPU#2:
+[   41.160742]  #0: ffff888101df7460 (mapping.invalidate_lock#3){.+.+}-{4:4}, at: filemap_get_pages+0x1ce/0x830
+[   41.160749]  #1: ffff888101df70b8 (&ni->file.run_lock#3){++++}-{4:4}, at: attr_data_get_block+0x51/0x130
+[   41.160756] 
+[   41.160756] =============================================
+[   41.160756] 
+[   44.522327] sysrq: Show Blocked State
+[   44.522340] task:ntfs3-stress    state:D stack:13392 pid:85    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   44.522347] Call Trace:
+[   44.522349]  <TASK>
+[   44.522354]  __schedule+0x53a/0x13a0
+[   44.522367]  schedule+0x36/0x100
+[   44.522372]  io_schedule+0x41/0x60
+[   44.522376]  __filemap_get_folio_mpol+0x353/0x4f0
+[   44.522382]  ? __filemap_get_folio_mpol+0x347/0x4f0
+[   44.522389]  ? __pfx_wake_page_function+0x10/0x10
+[   44.522397]  attr_make_nonresident+0x307/0x4a0
+[   44.522411]  attr_set_size_ex+0x7f7/0x12c0
+[   44.522418]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522438]  ntfs_set_size+0xa1/0x100
+[   44.522446]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522448]  ntfs_file_write_iter+0x690/0xc10
+[   44.522453]  ? lock_acquire+0xcf/0x300
+[   44.522457]  ? ksys_write+0x7c/0x110
+[   44.522465]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522467]  ? lock_is_held_type+0xa8/0x150
+[   44.522471]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522473]  ? lock_is_held_type+0xa8/0x150
+[   44.522479]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522482]  vfs_write+0x271/0x690
+[   44.522494]  ksys_write+0x7c/0x110
+[   44.522501]  do_syscall_64+0x10e/0x5e0
+[   44.522504]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522509]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   44.522513] RIP: 0033:0x7f690ff368f2
+[   44.522516] RSP: 002b:00007f690fe91cb8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[   44.522519] RAX: ffffffffffffffda RBX: 0000000000000240 RCX: 00007f690ff368f2
+[   44.522521] RDX: 0000000000000040 RSI: 00007f690fe91cf0 RDI: 0000000000000005
+[   44.522522] RBP: 00007f690fe91ce0 R08: 0000000000000000 R09: 0000000000000000
+[   44.522523] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe9997cdf4
+[   44.522525] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   44.522537]  </TASK>
+[   44.522538] task:ntfs3-stress    state:D stack:12992 pid:86    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   44.522543] Call Trace:
+[   44.522544]  <TASK>
+[   44.522548]  __schedule+0x53a/0x13a0
+[   44.522559]  schedule+0x36/0x100
+[   44.522562]  schedule_preempt_disabled+0x11/0x20
+[   44.522566]  rwsem_down_read_slowpath+0x2b1/0x6c0
+[   44.522579]  down_read+0x153/0x230
+[   44.522582]  attr_data_get_block+0x51/0x130
+[   44.522589]  ntfs_iomap_begin+0x125/0x4a0
+[   44.522601]  ntfs_iomap_next+0x101/0x2d0
+[   44.522604]  ? lock_is_held_type+0xa8/0x150
+[   44.522610]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522612]  ? __pfx_ntfs_iomap_next+0x10/0x10
+[   44.522615]  iomap_iter+0x56/0x400
+[   44.522623]  iomap_read_folio+0xd8/0x1f0
+[   44.522642]  ntfs_read_folio+0xb8/0x110
+[   44.522650]  filemap_read_folio+0x1a/0xa0
+[   44.522655]  filemap_get_pages+0x383/0x830
+[   44.522671]  filemap_read+0x12a/0x3f0
+[   44.522699]  vfs_read+0x34c/0x4a0
+[   44.522711]  __x64_sys_pread64+0xa5/0x100
+[   44.522718]  do_syscall_64+0x10e/0x5e0
+[   44.522721]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522726]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   44.522729] RIP: 0033:0x7f690ff368f2
+[   44.522731] RSP: 002b:00007f690f68fcf8 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   44.522733] RAX: ffffffffffffffda RBX: 0000000000000007 RCX: 00007f690ff368f2
+[   44.522735] RDX: 0000000000001000 RSI: 00007f690f68fd30 RDI: 0000000000000007
+[   44.522736] RBP: 00007f690f68fd20 R08: 0000000000000000 R09: 0000000000000000
+[   44.522737] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000021
+[   44.522739] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   44.522751]  </TASK>
+[   44.522752] task:ntfs3-stress    state:D stack:13008 pid:87    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   44.522756] Call Trace:
+[   44.522757]  <TASK>
+[   44.522762]  __schedule+0x53a/0x13a0
+[   44.522772]  schedule+0x36/0x100
+[   44.522775]  io_schedule+0x41/0x60
+[   44.522780]  __filemap_get_folio_mpol+0x353/0x4f0
+[   44.522784]  ? __filemap_get_folio_mpol+0x347/0x4f0
+[   44.522791]  ? __pfx_wake_page_function+0x10/0x10
+[   44.522798]  attr_make_nonresident+0x307/0x4a0
+[   44.522811]  attr_set_size_ex+0x7f7/0x12c0
+[   44.522818]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522837]  ntfs_set_size+0xa1/0x100
+[   44.522844]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522846]  ntfs_file_write_iter+0x690/0xc10
+[   44.522850]  ? lock_acquire+0xcf/0x300
+[   44.522853]  ? ksys_write+0x7c/0x110
+[   44.522860]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522862]  ? lock_is_held_type+0xa8/0x150
+[   44.522865]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522868]  ? lock_is_held_type+0xa8/0x150
+[   44.522874]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522877]  vfs_write+0x271/0x690
+[   44.522889]  ksys_write+0x7c/0x110
+[   44.522895]  do_syscall_64+0x10e/0x5e0
+[   44.522898]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.522903]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   44.522906] RIP: 0033:0x7f690ff368f2
+[   44.522908] RSP: 002b:00007f690ee8fcb8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[   44.522910] RAX: ffffffffffffffda RBX: 0000000000000240 RCX: 00007f690ff368f2
+[   44.522912] RDX: 0000000000000040 RSI: 00007f690ee8fcf0 RDI: 0000000000000009
+[   44.522913] RBP: 00007f690ee8fce0 R08: 0000000000000000 R09: 0000000000000000
+[   44.522914] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe9997ddf8
+[   44.522915] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   44.522928]  </TASK>
+[   44.522929] task:ntfs3-stress    state:D stack:13328 pid:88    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   44.522933] Call Trace:
+[   44.522934]  <TASK>
+[   44.522938]  __schedule+0x53a/0x13a0
+[   44.522948]  schedule+0x36/0x100
+[   44.522952]  schedule_preempt_disabled+0x11/0x20
+[   44.522955]  rwsem_down_read_slowpath+0x2b1/0x6c0
+[   44.522967]  down_read+0x153/0x230
+[   44.522971]  attr_data_get_block+0x51/0x130
+[   44.522977]  ntfs_iomap_begin+0x125/0x4a0
+[   44.522989]  ntfs_iomap_next+0x101/0x2d0
+[   44.522992]  ? lock_is_held_type+0xa8/0x150
+[   44.523027]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523030]  ? __pfx_ntfs_iomap_next+0x10/0x10
+[   44.523033]  iomap_iter+0x56/0x400
+[   44.523040]  iomap_read_folio+0xd8/0x1f0
+[   44.523059]  ntfs_read_folio+0xb8/0x110
+[   44.523066]  filemap_read_folio+0x1a/0xa0
+[   44.523071]  filemap_get_pages+0x383/0x830
+[   44.523087]  filemap_read+0x12a/0x3f0
+[   44.523114]  vfs_read+0x34c/0x4a0
+[   44.523127]  __x64_sys_pread64+0xa5/0x100
+[   44.523134]  do_syscall_64+0x10e/0x5e0
+[   44.523137]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523141]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   44.523144] RIP: 0033:0x7f690ff368f2
+[   44.523146] RSP: 002b:00007f690e68dcf8 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   44.523149] RAX: ffffffffffffffda RBX: 0000000000000006 RCX: 00007f690ff368f2
+[   44.523150] RDX: 0000000000001000 RSI: 00007f690e68dd30 RDI: 0000000000000006
+[   44.523151] RBP: 00007f690e68dd20 R08: 0000000000000000 R09: 0000000000000000
+[   44.523153] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000021
+[   44.523154] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   44.523166]  </TASK>
+[   44.523168] task:ntfs3-stress    state:D stack:13096 pid:89    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   44.523172] Call Trace:
+[   44.523173]  <TASK>
+[   44.523177]  __schedule+0x53a/0x13a0
+[   44.523195]  schedule+0x36/0x100
+[   44.523201]  io_schedule+0x41/0x60
+[   44.523207]  __filemap_get_folio_mpol+0x353/0x4f0
+[   44.523211]  ? __filemap_get_folio_mpol+0x347/0x4f0
+[   44.523219]  ? __pfx_wake_page_function+0x10/0x10
+[   44.523226]  attr_make_nonresident+0x307/0x4a0
+[   44.523239]  attr_set_size_ex+0x7f7/0x12c0
+[   44.523245]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523264]  ntfs_set_size+0xa1/0x100
+[   44.523271]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523274]  ntfs_file_write_iter+0x690/0xc10
+[   44.523277]  ? lock_acquire+0xcf/0x300
+[   44.523281]  ? ksys_write+0x7c/0x110
+[   44.523287]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523290]  ? lock_is_held_type+0xa8/0x150
+[   44.523293]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523296]  ? lock_is_held_type+0xa8/0x150
+[   44.523301]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523304]  vfs_write+0x271/0x690
+[   44.523316]  ksys_write+0x7c/0x110
+[   44.523323]  do_syscall_64+0x10e/0x5e0
+[   44.523326]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523331]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   44.523333] RIP: 0033:0x7f690ff368f2
+[   44.523335] RSP: 002b:00007f690de8dcb8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[   44.523338] RAX: ffffffffffffffda RBX: 0000000000000240 RCX: 00007f690ff368f2
+[   44.523339] RDX: 0000000000000040 RSI: 00007f690de8dcf0 RDI: 0000000000000008
+[   44.523340] RBP: 00007f690de8dce0 R08: 0000000000000000 R09: 0000000000000000
+[   44.523342] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe9997edfc
+[   44.523343] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   44.523355]  </TASK>
+[   44.523356] task:ntfs3-stress    state:D stack:13360 pid:90    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   44.523360] Call Trace:
+[   44.523361]  <TASK>
+[   44.523366]  __schedule+0x53a/0x13a0
+[   44.523376]  schedule+0x36/0x100
+[   44.523379]  schedule_preempt_disabled+0x11/0x20
+[   44.523383]  rwsem_down_read_slowpath+0x2b1/0x6c0
+[   44.523395]  down_read+0x153/0x230
+[   44.523399]  attr_data_get_block+0x51/0x130
+[   44.523405]  ntfs_iomap_begin+0x125/0x4a0
+[   44.523417]  ntfs_iomap_next+0x101/0x2d0
+[   44.523420]  ? lock_is_held_type+0xa8/0x150
+[   44.523425]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523428]  ? __pfx_ntfs_iomap_next+0x10/0x10
+[   44.523431]  iomap_iter+0x56/0x400
+[   44.523438]  iomap_read_folio+0xd8/0x1f0
+[   44.523456]  ntfs_read_folio+0xb8/0x110
+[   44.523464]  filemap_read_folio+0x1a/0xa0
+[   44.523468]  filemap_get_pages+0x383/0x830
+[   44.523484]  filemap_read+0x12a/0x3f0
+[   44.523511]  vfs_read+0x34c/0x4a0
+[   44.523524]  __x64_sys_pread64+0xa5/0x100
+[   44.523531]  do_syscall_64+0x10e/0x5e0
+[   44.523534]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523538]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   44.523541] RIP: 0033:0x7f690ff368f2
+[   44.523543] RSP: 002b:00007f690d68bcf8 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   44.523545] RAX: ffffffffffffffda RBX: 0000000000000004 RCX: 00007f690ff368f2
+[   44.523547] RDX: 0000000000001000 RSI: 00007f690d68bd30 RDI: 0000000000000004
+[   44.523548] RBP: 00007f690d68bd20 R08: 0000000000000000 R09: 0000000000000000
+[   44.523549] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000021
+[   44.523550] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   44.523563]  </TASK>
+[   44.523564] task:ntfs3-stress    state:D stack:13496 pid:91    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   44.523568] Call Trace:
+[   44.523569]  <TASK>
+[   44.523573]  __schedule+0x53a/0x13a0
+[   44.523583]  schedule+0x36/0x100
+[   44.523587]  io_schedule+0x41/0x60
+[   44.523591]  __filemap_get_folio_mpol+0x353/0x4f0
+[   44.523595]  ? __filemap_get_folio_mpol+0x347/0x4f0
+[   44.523602]  ? __pfx_wake_page_function+0x10/0x10
+[   44.523609]  attr_make_nonresident+0x307/0x4a0
+[   44.523622]  attr_set_size_ex+0x7f7/0x12c0
+[   44.523629]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523648]  ntfs_set_size+0xa1/0x100
+[   44.523655]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523657]  ntfs_file_write_iter+0x690/0xc10
+[   44.523661]  ? lock_acquire+0xcf/0x300
+[   44.523664]  ? ksys_write+0x7c/0x110
+[   44.523671]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523673]  ? lock_is_held_type+0xa8/0x150
+[   44.523676]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523679]  ? lock_is_held_type+0xa8/0x150
+[   44.523684]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523687]  vfs_write+0x271/0x690
+[   44.523699]  ksys_write+0x7c/0x110
+[   44.523706]  do_syscall_64+0x10e/0x5e0
+[   44.523709]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523714]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   44.523716] RIP: 0033:0x7f690ff368f2
+[   44.523718] RSP: 002b:00007f690ce8bcb8 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[   44.523721] RAX: ffffffffffffffda RBX: 0000000000000240 RCX: 00007f690ff368f2
+[   44.523722] RDX: 0000000000000040 RSI: 00007f690ce8bcf0 RDI: 000000000000000a
+[   44.523723] RBP: 00007f690ce8bce0 R08: 0000000000000000 R09: 0000000000000000
+[   44.523724] R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffe9997fe00
+[   44.523726] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   44.523738]  </TASK>
+[   44.523739] task:ntfs3-stress    state:D stack:13184 pid:92    tgid:83    ppid:1      task_flags:0x400040 flags:0x00080000
+[   44.523743] Call Trace:
+[   44.523744]  <TASK>
+[   44.523748]  __schedule+0x53a/0x13a0
+[   44.523758]  schedule+0x36/0x100
+[   44.523762]  schedule_preempt_disabled+0x11/0x20
+[   44.523765]  rwsem_down_read_slowpath+0x2b1/0x6c0
+[   44.523777]  down_read+0x153/0x230
+[   44.523781]  attr_data_get_block+0x51/0x130
+[   44.523787]  ntfs_iomap_begin+0x125/0x4a0
+[   44.523799]  ntfs_iomap_next+0x101/0x2d0
+[   44.523802]  ? lock_is_held_type+0xa8/0x150
+[   44.523807]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523810]  ? __pfx_ntfs_iomap_next+0x10/0x10
+[   44.523813]  iomap_iter+0x56/0x400
+[   44.523820]  iomap_read_folio+0xd8/0x1f0
+[   44.523838]  ntfs_read_folio+0xb8/0x110
+[   44.523846]  filemap_read_folio+0x1a/0xa0
+[   44.523850]  filemap_get_pages+0x383/0x830
+[   44.523866]  filemap_read+0x12a/0x3f0
+[   44.523893]  vfs_read+0x34c/0x4a0
+[   44.523906]  __x64_sys_pread64+0xa5/0x100
+[   44.523913]  do_syscall_64+0x10e/0x5e0
+[   44.523916]  ? srso_alias_return_thunk+0x5/0xfbef5
+[   44.523920]  entry_SYSCALL_64_after_hwframe+0x77/0x7f
+[   44.523923] RIP: 0033:0x7f690ff368f2
+[   44.523925] RSP: 002b:00007f690c689cf8 EFLAGS: 00000246 ORIG_RAX: 0000000000000011
+[   44.523927] RAX: ffffffffffffffda RBX: 0000000000000003 RCX: 00007f690ff368f2
+[   44.523929] RDX: 0000000000001000 RSI: 00007f690c689d30 RDI: 0000000000000003
+[   44.523930] RBP: 00007f690c689d20 R08: 0000000000000000 R09: 0000000000000000
+[   44.523931] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000021
+[   44.523932] R13: 00007ffe9997cc00 R14: 0000000000000000 R15: 00007ffe9997cd07
+[   44.523945]  </TASK>
+[   44.524012] sysrq: Show Locks Held
+[   44.524014] 
+[   44.524014] Showing all locks held in the system:
+[   44.524015] locks held by guest-init.sh/1: 3, last CPU#0:
+[   44.524017]  #0: ffff8881018d5470 (sb_writers#5){.+.+}-{0:0}, at: ksys_write+0x7c/0x110
+[   44.524028]  #1: ffffffff82964680 (rcu_read_lock){....}-{1:3}, at: __handle_sysrq+0x3c/0xe0
+[   44.524036]  #2: ffffffff82964680 (rcu_read_lock){....}-{1:3}, at: debug_show_all_locks+0x3d/0x17f
+[   44.524045] locks held by pr/ttyS0/41: 2, last CPU#1:
+[   44.524047]  #0: ffffffff82961a18 (console_srcu){....}-{0:0}, at: console_srcu_read_lock+0x44/0x60
+[   44.524055]  #1: ffffffff850d0738 (&port_lock_key){-...}-{3:3}, at: univ8250_console_device_lock+0x20/0x30
+[   44.524065] locks held by ntfs3-stress/85: 5, on CPU#1:
+[   44.524066]  #0: ffff8881009b1300 (&f->f_pos_lock){+.+.}-{4:4}, at: fdget_pos+0x7a/0xb0
+[   44.524074]  #1: ffff888100cbe470 (sb_writers#6){.+.+}-{0:0}, at: ksys_write+0x7c/0x110
+[   44.524082]  #2: ffff888101d483c0 (&sb->s_type->i_mutex_key#8){+.+.}-{4:4}, at: ntfs_file_write_iter+0x58/0xc10
+[   44.524091]  #3: ffff888101d48100 (&ni->ni_lock#3/5){+.+.}-{4:4}, at: ntfs_set_size+0x5b/0x100
+[   44.524100]  #4: ffff888101d481b8 (&ni->file.run_lock#3){++++}-{4:4}, at: ntfs_set_size+0x67/0x100
+[   44.524108] locks held by ntfs3-stress/86: 2, on CPU#2:
+[   44.524110]  #0: ffff888101d48560 (mapping.invalidate_lock#3){.+.+}-{4:4}, at: filemap_get_pages+0x1ce/0x830
+[   44.524118]  #1: ffff888101d481b8 (&ni->file.run_lock#3){++++}-{4:4}, at: attr_data_get_block+0x51/0x130
+[   44.524126] locks held by ntfs3-stress/87: 5, on CPU#3:
+[   44.524128]  #0: ffff8881018f3c00 (&f->f_pos_lock){+.+.}-{4:4}, at: fdget_pos+0x7a/0xb0
+[   44.524134]  #1: ffff888100cbe470 (sb_writers#6){.+.+}-{0:0}, at: ksys_write+0x7c/0x110
+[   44.524143]  #2: ffff8881006c4230 (&sb->s_type->i_mutex_key#8){+.+.}-{4:4}, at: ntfs_file_write_iter+0x58/0xc10
+[   44.524151]  #3: ffff8881006c3f70 (&ni->ni_lock#3/5){+.+.}-{4:4}, at: ntfs_set_size+0x5b/0x100
+[   44.524159]  #4: ffff8881006c4028 (&ni->file.run_lock#3){++++}-{4:4}, at: ntfs_set_size+0x67/0x100
+[   44.524167] locks held by ntfs3-stress/88: 2, on CPU#0:
+[   44.524169]  #0: ffff8881006c43d0 (mapping.invalidate_lock#3){.+.+}-{4:4}, at: filemap_get_pages+0x1ce/0x830
+[   44.524177]  #1: ffff8881006c4028 (&ni->file.run_lock#3){++++}-{4:4}, at: attr_data_get_block+0x51/0x130
+[   44.524191] locks held by ntfs3-stress/89: 5, on CPU#0:
+[   44.524193]  #0: ffff8881009b1180 (&f->f_pos_lock){+.+.}-{4:4}, at: fdget_pos+0x7a/0xb0
+[   44.524199]  #1: ffff888100cbe470 (sb_writers#6){.+.+}-{0:0}, at: ksys_write+0x7c/0x110
+[   44.524208]  #2: ffff8881006c1890 (&sb->s_type->i_mutex_key#8){+.+.}-{4:4}, at: ntfs_file_write_iter+0x58/0xc10
+[   44.524216]  #3: ffff8881006c15d0 (&ni->ni_lock#3/5){+.+.}-{4:4}, at: ntfs_set_size+0x5b/0x100
+[   44.524224]  #4: ffff8881006c1688 (&ni->file.run_lock#3){++++}-{4:4}, at: ntfs_set_size+0x67/0x100
+[   44.524232] locks held by ntfs3-stress/90: 2, on CPU#2:
+[   44.524234]  #0: ffff8881006c1a30 (mapping.invalidate_lock#3){.+.+}-{4:4}, at: filemap_get_pages+0x1ce/0x830
+[   44.524242]  #1: ffff8881006c1688 (&ni->file.run_lock#3){++++}-{4:4}, at: attr_data_get_block+0x51/0x130
+[   44.524250] locks held by ntfs3-stress/91: 5, on CPU#3:
+[   44.524251]  #0: ffff888101711300 (&f->f_pos_lock){+.+.}-{4:4}, at: fdget_pos+0x7a/0xb0
+[   44.524258]  #1: ffff888100cbe470 (sb_writers#6){.+.+}-{0:0}, at: ksys_write+0x7c/0x110
+[   44.524267]  #2: ffff888101df72c0 (&sb->s_type->i_mutex_key#8){+.+.}-{4:4}, at: ntfs_file_write_iter+0x58/0xc10
+[   44.524274]  #3: ffff888101df7000 (&ni->ni_lock#3/5){+.+.}-{4:4}, at: ntfs_set_size+0x5b/0x100
+[   44.524283]  #4: ffff888101df70b8 (&ni->file.run_lock#3){++++}-{4:4}, at: ntfs_set_size+0x67/0x100
+[   44.524291] locks held by ntfs3-stress/92: 2, on CPU#2:
+[   44.524292]  #0: ffff888101df7460 (mapping.invalidate_lock#3){.+.+}-{4:4}, at: filemap_get_pages+0x1ce/0x830
+[   44.524301]  #1: ffff888101df70b8 (&ni->file.run_lock#3){++++}-{4:4}, at: attr_data_get_block+0x51/0x130
+[   44.524309] 
+[   44.524310] =============================================
+[   44.524310] 
+RESULT: HUNG after 45s
+[   46.587133] sysrq: Power Off
+[   46.595312] ACPI: PM: Preparing to enter system sleep state S5
+[   46.596460] reboot: Power down

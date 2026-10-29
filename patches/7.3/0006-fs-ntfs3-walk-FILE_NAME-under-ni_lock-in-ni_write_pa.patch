@@ -1,0 +1,112 @@
+From b38e2bb56a0e3ff31a5de9defabfa8aa7dc0ae5c Mon Sep 17 00:00:00 2001
+From: Kamil Chojnowski <contact@diath.net>
+Date: Thu, 29 Oct 2026 20:52:47 +0100
+Subject: [PATCH 6/6] fs/ntfs3: walk $FILE_NAME under ni_lock in
+ ni_write_parents
+
+ni_write_parents() (fsync) walks the inode's attributes without ni_lock.
+When the record is rearranged at the same time - a name removed by
+unlink, $DATA moved out of the record by a write through another file
+descriptor - it can read a half-moved attribute.  It then either follows
+a garbage parent reference:
+
+  ntfs3(vda): MFT: r=0, expect seq=0 instead of 1!
+  ntfs3(vda): ino=1e6, failed to open parent directory r=0 to write
+
+or mi_enum_attr() sees an inconsistent record and marks a healthy inode
+bad and the volume dirty, after which every operation on the file fails
+with -EINVAL:
+
+  ntfs3(vda): ino=100, "res2" mi_enum_attr
+
+Collect the parent references under ni_lock and open and write the
+parents after dropping it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ fs/ntfs3/frecord.c | 42 +++++++++++++++++++++++++++++++++++-------
+ 1 file changed, 35 insertions(+), 7 deletions(-)
+
+diff --git a/fs/ntfs3/frecord.c b/fs/ntfs3/frecord.c
+index c36a589..a7fe72b 100644
+--- a/fs/ntfs3/frecord.c
++++ b/fs/ntfs3/frecord.c
+@@ -2995,13 +2995,33 @@ int ni_write_parents(struct ntfs_inode *ni, int sync)
+ 	struct ATTR_LIST_ENTRY *le = NULL;
+ 	struct ntfs_sb_info *sbi = ni->mi.sbi;
+ 	struct super_block *sb = sbi->sb;
++	struct MFT_REF *homes;
++	u32 i, n = 0, cnt = 0;
+ 
+ 	if (!is_ni_base(ni))
+ 		return 0;
+ 
++	/*
++	 * Collect the parent references under ni_lock: the record may be
++	 * rearranged at the same time (a name removed, $DATA moved out of the
++	 * record), and mi_enum_attr() marks the inode bad if it walks a
++	 * half-moved attribute.  Open and write the parents without ni_lock.
++	 */
++	ni_lock(ni);
+ 	while ((attr = ni_find_attr(ni, attr, &le, ATTR_NAME, NULL, 0, NULL,
+-				    NULL))) {
+-		struct inode *dir;
++				    NULL)))
++		cnt++;
++
++	homes = kmalloc_array(cnt, sizeof(*homes), GFP_NOFS);
++	if (cnt && !homes) {
++		ni_unlock(ni);
++		return -ENOMEM;
++	}
++
++	attr = NULL;
++	le = NULL;
++	while (n < cnt && (attr = ni_find_attr(ni, attr, &le, ATTR_NAME, NULL,
++					       0, NULL, NULL))) {
+ 		struct ATTR_FILE_NAME *fname;
+ 
+ 		fname = resident_data_ex(attr, SIZEOF_ATTRIBUTE_FILENAME);
+@@ -3010,19 +3030,26 @@ int ni_write_parents(struct ntfs_inode *ni, int sync)
+ 
+ 		/* Check simple case when parent inode equals current inode. */
+ 		if (ino_get(&fname->home) == ni->vfs_inode.i_ino) {
+-			if (MFT_REC_ROOT != ni->vfs_inode.i_ino) {
+-				ntfs_set_state(sbi, NTFS_DIRTY_ERROR);
++			if (MFT_REC_ROOT != ni->vfs_inode.i_ino)
+ 				err = -EINVAL;
+-			}
+ 			continue;
+ 		}
+ 
+-		dir = ntfs_iget5(sb, &fname->home, NULL);
++		homes[n++] = fname->home;
++	}
++	ni_unlock(ni);
++
++	if (err)
++		ntfs_set_state(sbi, NTFS_DIRTY_ERROR);
++
++	for (i = 0; i < n; i++) {
++		struct inode *dir = ntfs_iget5(sb, &homes[i], NULL);
++
+ 		if (IS_ERR(dir)) {
+ 			ntfs_inode_warn(
+ 				&ni->vfs_inode,
+ 				"failed to open parent directory r=%llx to write",
+-				(u64)ino_get(&fname->home));
++				(u64)ino_get(&homes[i]));
+ 			continue;
+ 		}
+ 
+@@ -3033,6 +3060,7 @@ int ni_write_parents(struct ntfs_inode *ni, int sync)
+ 		}
+ 		iput(dir);
+ 	}
++	kfree(homes);
+ 
+ 	return err;
+ }
+-- 
+2.56.0
+

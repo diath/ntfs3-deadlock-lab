@@ -1,0 +1,6 @@
+
+TEST                   VERDICT                            NOTES
+d1-resident            HUNG after 46s                     hung-task x4; 
+d1-resident-t          KERNEL_WARNING test_rc=2 elapsed=2s WARNING: fs/iomap/buffered-io.c:425 pread: Input/output error 
+d1-resident-f          HUNG after 45s                     hung-task x4; WARNING: lib/errseq.c:75 WARNING: mm/page-writeback.c:2507 
+d1-resmmap             HUNG after 45s                     hung-task x83; WARNING: lib/errseq.c:75 WARNING: mm/page-writeback.c:2507 data errors x10; 

@@ -1,0 +1,9 @@
+
+TEST                   VERDICT                            NOTES
+d1-resident            HUNG after 45s                     hung-task x4; 
+d1-resident-t          KERNEL_WARNING test_rc=2 elapsed=2s WARNING: fs/iomap/buffered-io.c:431 pread: Input/output error 
+d1-resident-f          HUNG after 45s                     hung-task x4; 
+d1-resmmap             HUNG after 46s                     hung-task x88; WARNING: lib/errseq.c:75 WARNING: mm/page-writeback.c:2496 data errors x10; 
+dirstorm               PASS test_rc=0 elapsed=122s        
+git-agents-pressure    PASS test_rc=0 elapsed=158s        
+git-agents-heavy       PASS test_rc=0 elapsed=485s        

@@ -1,0 +1,61 @@
+From 3eb5dd40d4b7bea29937db1455ea53a46be63e63 Mon Sep 17 00:00:00 2001
+From: Kamil Chojnowski <contact@diath.net>
+Date: Thu, 29 Oct 2026 20:52:47 +0100
+Subject: [PATCH 2/6] fs/ntfs3: do not drop data when writeback races with
+ $DATA conversion
+
+ntfs_writepages() takes the resident path when is_resident() is true on
+entry, then calls attr_data_write_resident() for each dirty folio.  If
+$DATA was moved out of the MFT record in between, it returns the
+internal code E_NTFS_NONRESIDENT (556).  That positive value is passed
+to mapping_set_error(), where errseq_set() warns about it, and
+writeback_iter() warns as well.  writeback_iter() has already cleared
+the folio's dirty bit, so its data is never written.
+
+Redirty the folio and finish through iomap_writepages(), which writes it
+to the clusters the attribute now has.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ fs/ntfs3/inode.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ntfs3/inode.c b/fs/ntfs3/inode.c
+index 5a6566e..b4bf500 100644
+--- a/fs/ntfs3/inode.c
++++ b/fs/ntfs3/inode.c
+@@ -1258,6 +1258,7 @@ static int ntfs_writepages(struct address_space *mapping,
+ 
+ 	if (is_resident(ni)) {
+ 		struct folio *folio = NULL;
++		bool converted = false;
+ 		err = 0;
+ 
+ 		while ((folio = writeback_iter(mapping, wbc, folio, &err))) {
+@@ -1267,6 +1268,13 @@ static int ntfs_writepages(struct address_space *mapping,
+ 			err2 = attr_data_write_resident(ni, folio);
+ 			ni_unlock(ni);
+ 
++			if (err2 == E_NTFS_NONRESIDENT) {
++				/* Converted after is_resident() check above. */
++				folio_redirty_for_writepage(wbc, folio);
++				converted = true;
++				err2 = 0;
++			}
++
+ 			folio_unlock(folio);
+ 			if (err2) {
+ 				mapping_set_error(mapping, err2);
+@@ -1275,7 +1283,8 @@ static int ntfs_writepages(struct address_space *mapping,
+ 			}
+ 		}
+ 
+-		return err;
++		if (!converted || err)
++			return err;
+ 	}
+ 
+ 	return iomap_writepages(&wpc);
+-- 
+2.56.0
+

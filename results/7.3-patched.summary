@@ -1,0 +1,9 @@
+
+TEST                   VERDICT                            NOTES
+d1-resident            PASS test_rc=0 elapsed=121s        
+d1-resident-t          PASS test_rc=0 elapsed=121s        
+d1-resident-f          PASS test_rc=0 elapsed=122s        
+d1-resmmap             PASS test_rc=0 elapsed=123s        
+dirstorm               PASS test_rc=1 elapsed=122s        data errors x1; 
+git-agents-pressure    PASS test_rc=0 elapsed=161s        
+git-agents-heavy       PASS test_rc=0 elapsed=489s        

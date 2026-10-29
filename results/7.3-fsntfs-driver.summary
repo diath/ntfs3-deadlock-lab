@@ -1,0 +1,13 @@
+Same reproducers, Linux 7.3 with CONFIG_NTFS_FS=y (fs/ntfs driver, "mount -t ntfs"), lockdep on.
+(Run before run-matrix.sh existed; the git run was cut by a too-short harness timeout, not a hang.)
+
+TEST                   VERDICT                            NOTES
+d1-resident            PASS test_rc=0 elapsed=122s
+d1-resident-t          PASS test_rc=0 elapsed=122s
+d1-resident-f          n/a  test_rc=2 elapsed=2s           fallocate(mode 0): Operation not supported
+d1-resmmap             PASS test_rc=1 elapsed=122s        data errors x12 of 98936 iterations: appended bytes
+                                                          (offset 300..) read back as zeros after fsync
+dirstorm               PASS test_rc=1 elapsed=122s        2 SIGBUS reports with the old detector (no ctime
+                                                          check) - most likely false positives
+git-agents-pressure    no hang in 150 s (killed by harness timeout)
+No hung tasks, lockdep reports or kernel WARNINGs in any run.

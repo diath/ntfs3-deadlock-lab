@@ -1,0 +1,273 @@
+From 0fbd1f93a302b2112f4cf846ae8a73d754ad6d78 Mon Sep 17 00:00:00 2001
+From: Kamil Chojnowski <contact@diath.net>
+Date: Thu, 29 Oct 2026 20:52:47 +0100
+Subject: [PATCH 5/6] fs/ntfs3: do not call dir_emit() under ni_lock in readdir
+
+ntfs_readdir() holds the directory's ni_lock for the whole walk,
+including dir_emit(), which copies to user space and may fault.  A fault
+on an ntfs3 mapping takes the faulting file's run_lock/ni_lock through
+read_folio -> ntfs_iomap_begin, and lockdep reports:
+
+  WARNING: possible circular locking dependency detected
+  mapping.invalidate_lock --> &mm->mmap_lock --> vm_lock
+   ... -> #2 (&mm->mmap_lock): filldir64 <- ntfs_read_hdr <- ntfs_readdir
+   ... -> #1 (&ni->ni_lock#3/5): attr_data_get_block <- ntfs_read_folio
+
+Lockdep cannot tell the directory's ni_lock from the file's, but holding
+the lock across a fault is wrong regardless: while the fault waits, no
+lookup in the directory can proceed (ntfs_lookup takes ni_lock_dir), so
+a stall anywhere under the fault spreads to every path walk through the
+directory.  The d_type lookup through ntfs_iget5() also ran under the
+lock.
+
+Collect entries into a buffer under ni_lock and emit them after dropping
+it, a batch at a time; open the inode for d_type outside the lock too.
+i_rwsem, held shared by iterate_shared, keeps the index from changing
+between batches as before.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ fs/ntfs3/dir.c | 141 ++++++++++++++++++++++++++++++++++++++++---------
+ 1 file changed, 115 insertions(+), 26 deletions(-)
+
+diff --git a/fs/ntfs3/dir.c b/fs/ntfs3/dir.c
+index 14ca54e..c5aebe9 100644
+--- a/fs/ntfs3/dir.c
++++ b/fs/ntfs3/dir.c
+@@ -327,16 +327,41 @@ static inline bool de_fname_fits(const struct NTFS_DE *e, u32 e_size,
+ }
+ 
+ /*
+- * returns false if 'ctx' if full
++ * Directory entries collected by ntfs_read_hdr() under ni_lock and passed
++ * to dir_emit() by ntfs_dir_emit_batch() after ni_lock is dropped:
++ * dir_emit() copies to user space and may fault, and a fault on an ntfs3
++ * mapping takes ni_lock/run_lock of that file (read_folio ->
++ * ntfs_iomap_begin -> attr_data_get_block).
+  */
+-static inline bool ntfs_dir_emit(struct ntfs_sb_info *sbi,
+-				 struct ntfs_inode *ni, const struct NTFS_DE *e,
+-				 u8 *name, struct dir_context *ctx)
++struct ntfs_dirent {
++	u64 pos; /* ctx->pos of this entry. */
++	u64 ino;
++	struct MFT_REF ref;
++	u16 name_len;
++	u8 dt_type;
++	u8 get_type; /* Open the inode to get the real d_type. */
++	char name[];
++};
++
++#define NTFS_DIR_BATCH_SIZE (2 * PAGE_SIZE)
++
++struct ntfs_dir_batch {
++	void *buf;
++	u32 used;
++};
++
++/*
++ * returns false if 'batch' is full
++ */
++static inline bool ntfs_dir_add(struct ntfs_sb_info *sbi,
++				struct ntfs_inode *ni, const struct NTFS_DE *e,
++				u8 *name, struct ntfs_dir_batch *batch, u64 pos)
+ {
+ 	const struct ATTR_FILE_NAME *fname;
++	struct ntfs_dirent *de;
+ 	u64 ino;
+ 	int name_len;
+-	u32 dt_type;
++	u32 dt_type, off;
+ 
+ 	fname = Add2Ptr(e, sizeof(struct NTFS_DE));
+ 
+@@ -386,15 +411,54 @@ static inline bool ntfs_dir_emit(struct ntfs_sb_info *sbi,
+ 	 * It does additional locks/reads just to get the type of name.
+ 	 * Should we use additional mount option to enable branch below?
+ 	 */
+-	if (fname->dup.extend_data && ino != ni->mi.rno) {
+-		struct inode *inode = ntfs_iget5(sbi->sb, &e->ref, NULL);
+-		if (!IS_ERR_OR_NULL(inode)) {
+-			dt_type = fs_umode_to_dtype(inode->i_mode);
+-			iput(inode);
++	off = ALIGN(batch->used, 8);
++	if (off + sizeof(*de) + name_len > NTFS_DIR_BATCH_SIZE)
++		return false;
++
++	de = batch->buf + off;
++	de->pos = pos;
++	de->ino = ino;
++	de->ref = e->ref;
++	de->name_len = name_len;
++	de->dt_type = dt_type;
++	de->get_type = fname->dup.extend_data && ino != ni->mi.rno;
++	memcpy(de->name, name, name_len);
++	batch->used = off + sizeof(*de) + name_len;
++	return true;
++}
++
++/*
++ * ntfs_dir_emit_batch - Pass collected entries to dir_emit().
++ *
++ * Called without ni_lock.  Returns false if 'ctx' is full; ctx->pos then
++ * points to the first entry not emitted.
++ */
++static bool ntfs_dir_emit_batch(struct super_block *sb,
++				struct ntfs_dir_batch *batch,
++				struct dir_context *ctx)
++{
++	u32 off = 0;
++
++	while (off < batch->used) {
++		struct ntfs_dirent *de = batch->buf + off;
++		u32 dt_type = de->dt_type;
++
++		if (de->get_type) {
++			struct inode *inode = ntfs_iget5(sb, &de->ref, NULL);
++
++			if (!IS_ERR_OR_NULL(inode)) {
++				dt_type = fs_umode_to_dtype(inode->i_mode);
++				iput(inode);
++			}
+ 		}
+-	}
+ 
+-	return dir_emit(ctx, (s8 *)name, name_len, ino, dt_type);
++		ctx->pos = de->pos;
++		if (!dir_emit(ctx, de->name, de->name_len, de->ino, dt_type))
++			return false;
++
++		off = ALIGN(off + sizeof(*de) + de->name_len, 8);
++	}
++	return true;
+ }
+ 
+ /*
+@@ -402,11 +466,11 @@ static inline bool ntfs_dir_emit(struct ntfs_sb_info *sbi,
+  *
+  * returns 0 if ok.
+  * returns -EINVAL if directory is corrupted.
+- * returns +1 if 'ctx' is full.
++ * returns +1 if 'batch' is full; *next is the position to continue from.
+  */
+ static int ntfs_read_hdr(struct ntfs_sb_info *sbi, struct ntfs_inode *ni,
+ 			 const struct INDEX_HDR *hdr, u64 vbo, u64 pos,
+-			 u8 *name, struct dir_context *ctx)
++			 u8 *name, struct ntfs_dir_batch *batch, u64 *next)
+ {
+ 	const struct NTFS_DE *e;
+ 	u32 e_size;
+@@ -432,11 +496,10 @@ static int ntfs_read_hdr(struct ntfs_sb_info *sbi, struct ntfs_inode *ni,
+ 		if (le16_to_cpu(e->key_size) < SIZEOF_ATTRIBUTE_FILENAME)
+ 			return -EINVAL;
+ 
+-		ctx->pos = vbo + off;
+-
+-		/* Submit the name to the filldir callback. */
+-		if (!ntfs_dir_emit(sbi, ni, e, name, ctx)) {
+-			/* ctx is full. */
++		/* Queue the name for the filldir callback. */
++		if (!ntfs_dir_add(sbi, ni, e, name, batch, vbo + off)) {
++			/* batch is full. */
++			*next = vbo + off;
+ 			return +1;
+ 		}
+ 	}
+@@ -458,8 +521,9 @@ static int ntfs_readdir(struct file *file, struct dir_context *ctx)
+ 	struct super_block *sb = dir->i_sb;
+ 	struct ntfs_sb_info *sbi = sb->s_fs_info;
+ 	loff_t i_size = i_size_read(dir);
+-	u64 pos = ctx->pos;
++	u64 pos = ctx->pos, pos0 = 0, next = 0;
+ 	u8 *name = NULL;
++	struct ntfs_dir_batch batch = {};
+ 	struct indx_node *node = NULL;
+ 	u8 index_bits = ni->dir.index_bits;
+ 	size_t max_bit = i_size >> ni->dir.index_bits;
+@@ -522,8 +586,12 @@ static int ntfs_readdir(struct file *file, struct dir_context *ctx)
+ 		return 0;
+ 
+ 	name = kmalloc(PATH_MAX, GFP_KERNEL);
+-	if (!name)
+-		return -ENOMEM;
++	batch.buf = kmalloc(NTFS_DIR_BATCH_SIZE, GFP_KERNEL);
++	if (!name || !batch.buf) {
++		err = -ENOMEM;
++		goto out;
++	}
++	pos0 = pos;
+ 
+ 	if (!ni->mi_loaded && ni->attr_list.size) {
+ 		/*
+@@ -542,11 +610,16 @@ static int ntfs_readdir(struct file *file, struct dir_context *ctx)
+ 			goto out;
+ 	}
+ 
++next_batch:
+ 	/*
+-	 * Keep directory metadata stable for the whole walk. Loading subrecords
++	 * Keep directory metadata stable while walking it. Loading subrecords
+ 	 * once is not enough if concurrent writeback can still compact ATTR_LIST
+ 	 * entries and free the record that ntfs_read_hdr() is currently walking.
++	 * Entries are only collected here; they are emitted after ni_lock is
++	 * dropped (dir_emit() may fault).  i_rwsem (shared) keeps the index
++	 * itself from changing between batches.
+ 	 */
++	batch.used = 0;
+ 	ni_lock(ni);
+ 
+ 	root = indx_get_root(&ni->dir, ni, NULL, NULL);
+@@ -561,7 +634,8 @@ static int ntfs_readdir(struct file *file, struct dir_context *ctx)
+ 		/*
+ 		 * Add each name from root in 'ctx'.
+ 		 */
+-		err = ntfs_read_hdr(sbi, ni, &root->ihdr, 0, pos, name, ctx);
++		err = ntfs_read_hdr(sbi, ni, &root->ihdr, 0, pos, name, &batch,
++				    &next);
+ 		if (err)
+ 			goto out_unlock;
+ 		bit = 0;
+@@ -597,15 +671,30 @@ static int ntfs_readdir(struct file *file, struct dir_context *ctx)
+ 		 */
+ 		err = ntfs_read_hdr(sbi, ni, &node->index->ihdr,
+ 				    ((u64)bit << index_bits) + sbi->record_size,
+-				    pos, name, ctx);
++				    pos, name, &batch, &next);
+ 		if (err)
+ 			goto out_unlock;
+ 	}
+ 
+ out_unlock:
+ 	ni_unlock(ni);
++	put_indx_node(node);
++	node = NULL;
++
++	/* Emit what was collected, also before reporting an error. */
++	if (!ntfs_dir_emit_batch(sb, &batch, ctx)) {
++		/* 'ctx' is full. */
++		if (err >= 0)
++			err = 1;
++	} else if (err == 1) {
++		/* 'batch' was full: continue the walk from 'next'. */
++		pos = next;
++		err = 0;
++		goto next_batch;
++	}
+ 
+ out:
++	kfree(batch.buf);
+ 	kfree(name);
+ 	put_indx_node(node);
+ 
+@@ -617,7 +706,7 @@ out:
+ 		err = 0;
+ 	} else if (err == -ENOENT) {
+ 		err = 0;
+-		ctx->pos = pos;
++		ctx->pos = pos0;
+ 	} else if (err < 0) {
+ 		if (err == -EINVAL)
+ 			_ntfs_bad_inode(dir);
+-- 
+2.56.0
+

@@ -1,0 +1,3 @@
+# Text log that contains NUL bytes (the reproducer printed the zeroed data it
+# read back), which makes git guess "binary".  Diff and merge it as text.
+results/consoles/nt-d1m.log text diff

@@ -1,0 +1,30 @@
+# Prebuilt test kernels (rebuild with repro/kconfig-debug.sh, see README)
+/kernels/
+bzImage*
+vmlinux*
+
+# Kernel sources and build trees from the README quick start
+/src/
+/build*/
+
+# NTFS test volume and per-run copies (recreate with mkntfs, see README)
+/img/
+*.img
+
+# Output of run-vm.sh / run-matrix.sh (curated copies live in results/)
+/share/
+
+# Compiled reproducer (gcc -O2 -pthread -o repro/ntfs3-stress repro/ntfs3-stress.c)
+/repro/ntfs3-stress
+/repro/ntfs3-stress.new
+
+# Out-of-tree module build products in module-7.2.11/
+*.o
+*.ko
+*.ko.*
+*.mod
+*.mod.c
+.*.cmd
+modules.order
+Module.symvers
+/module-7.2.11/ntfs3.ko.built-for-*
