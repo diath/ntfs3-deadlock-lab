@@ -18,6 +18,7 @@ repro/
                         dumps sysrq-w (blocked stacks) + sysrq-d (held locks)
   kconfig-debug.sh      kernel config: KVM guest + ntfs3 (or DRIVER=ntfs) + lockdep,
                         hung-task detector (20 s), 9p root
+  mkimg-sparse.sh       image with ntfs-3g-written sparse files for tests/sparse-rewrite.sh (D7)
 patches/7.3/            6-patch series against v7.3 (git am / patch -p1)
 patches/7.2.11/         the same fixes as one patch against v7.2.11
 module-7.2.11/          patched fs/ntfs3 for 7.2.11, buildable as an out-of-tree module
@@ -198,6 +199,27 @@ stock kernels.  Fix: patch 6.
 trips `WARNING: lib/errseq.c:75` and `WARNING: mm/page-writeback.c` and the
 already-cleaned folio is never written.  linux-next maps it to `-EIO` (no
 WARN, data still dropped).  Fix (patch 2): redirty and write via iomap.
+
+### D7 - writing into the holes of an ntfs-3g sparse file breaks it (not fixed)
+
+ntfs-3g makes a file sparse whenever a write leaves a gap, which is what
+linkers do, so cargo/CMake output written under ntfs-3g is sparse with
+compression unit 4 and a 4 KiB-rounded `alloc_size`.  When ntfs3 later fills
+those holes (rewriting the file in place with `pwrite` or a shared mmap), it
+over-counts `total_size` past `alloc_size`, then its own `mi_enum_attr` check
+rejects the record: the inode goes bad (`stat`/`open` return `EINVAL`), the
+volume is marked dirty, and the next rw mount is refused until chkdsk /
+`ntfsfix -d`.  A `pwrite` reports success and the file is unreadable
+afterwards.  Same on stock 7.2.11, patched 7.2.11 and stock 7.3, with or
+without `prealloc`.  Files ntfs3 creates itself are never sparse, so only
+files left over from ntfs-3g are exposed.  Repro: `sudo repro/mkimg-sparse.sh`,
+then `repro/run-vm.sh -k <bzImage> -i img/sparse-ntfs3g.img d7 repro/tests/sparse-rewrite.sh`.
+
+Also when moving from ntfs-3g: ntfs-3g writes symlinks in the Interix format
+(a small file starting with `IntxLNK\1`).  ntfs3 does not understand those
+and shows them as regular files, so `node_modules/.bin/*` fails with "Exec
+format error" and symlinked files read as garbage.  Recreate them (e.g.
+reinstall `node_modules`) or convert them to real symlinks under ntfs3.
 
 ## Results
 
