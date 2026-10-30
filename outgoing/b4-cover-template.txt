@@ -1,0 +1,13 @@
+# b4's default cover template without its "Best regards" signature,
+# since the cover letter already ends with one.
+
+${cover}
+
+---
+${shortlog}
+
+${diffstat}
+---
+base-commit: ${base_commit}
+change-id: ${change_id}
+${prerequisites}

@@ -1,0 +1,29 @@
+From: Kamil Chojnowski <contact@diath.net>
+To: Christian Aurich Zanettini Martins <christian.aurichzm@gmail.com>
+Cc: almaz.alexandrovich@paragon-software.com, ntfs3@lists.linux.dev, linux-kernel@vger.kernel.org, yun.zhou@windriver.com
+Subject: Re: [PATCH v2] fs/ntfs3: fix double ni_unlock() in ntfs_readdir()
+In-Reply-To: <20261029052102.1585462-1-christian.aurichzm@gmail.com>
+References: <20261029052102.1585462-1-christian.aurichzm@gmail.com>
+
+On Thu, 29 Oct 2026 02:21:02 -0300, Christian Aurich Zanettini Martins wrote:
+> This also happens when getdents64() fills the supplied buffer,
+> triggering a lockdep "bad unlock balance" warning.
+>
+> Jump to out_free instead to avoid unlocking an already released lock.
+
+I hit the same warning while testing ntfs3 master (ee1cb3443cff) with
+lockdep in a QEMU/KVM guest: "ls -f" of a 3000-entry directory, 20
+times, with concurrent stat(2) calls, reported
+
+  WARNING: bad unlock balance detected!
+  ... is trying to release lock (&ni->ni_lock) at:
+  ntfs_readdir+0x2c6/0x600
+
+on the first run, and so did a workload of 16 concurrent git worktrees
+of one repository (run with a series of mine for resident files on
+top of master).  With this patch applied on top of ee1cb3443cff the
+directory test runs clean, and a 120 s run of 12 threads doing random
+create/unlink/rename/link/mkdir/readdir/mmap/fallocate/fsync on four
+shared directories reported no lockdep warnings.
+
+Tested-by: Kamil Chojnowski <contact@diath.net>

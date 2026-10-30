@@ -1,0 +1,94 @@
+fs/ntfs3: fix a deadlock and data loss in resident and sparse files
+
+Hi Konstantin,
+
+I have been trying to move my workstation from ntfs-3g to ntfs3 for a
+while.  Every attempt ended with the system wedged: several coding
+agents and git worktrees working on one ntfs3 volume left tasks stuck in
+D state until a reboot, so I kept going back to ntfs-3g.
+
+The hang is an ABBA deadlock between folio 0 and ni_lock/run_lock when a
+resident file grows past the MFT record.  attr_make_nonresident() runs
+with ni_lock and run_lock held and locks folio 0 to copy the resident
+data into the page cache, while ntfs_read_folio() (iomap ->
+ntfs_iomap_begin() -> attr_data_get_block()) and the resident path of
+ntfs_writepages() hold folio 0 and then take run_lock/ni_lock.  A writer
+appending to a small file while another task reads it cold hangs within
+a minute on ntfs3 master, 7.3, 7.2.11 and 6.18.59.  The same inversion
+was already in the pre-iomap code, so all stable kernels are affected.
+
+  1/6 the deadlock: lock folio 0 before ni_lock in every path that can
+      convert $DATA
+  2/6 mmap writes to a small file are lost when it grows: keep an
+      uptodate folio 0 instead of overwriting it from the resident copy
+  3/6 extending a resident file with ftruncate(2) races with readers and
+      gives -EIO plus a WARNING in iomap_read_inline_data(): resize the
+      attribute before i_size
+  4/6 writeback that races with the conversion drops the folio; since
+      2727ac2ba87a it reports -EIO instead of warning, but the data is
+      still lost: redirty it and write it through iomap
+  5/6 ni_write_parents() walks the record without ni_lock, and a
+      concurrent change makes fsync mark a healthy inode bad and the
+      volume dirty
+  6/6 writing into a hole of a sparse file that ntfs-3g created can
+      zero up to 15 clusters of data next to the hole, leak the old
+      clusters and push total_size past alloc_size, after which
+      mi_enum_attr() rejects the file and the volume is marked dirty.
+      ntfs-3g allocates sparse files cluster by cluster with c_unit 4,
+      so every file it wrote with holes (linker output, for instance)
+      can hit this once the volume is mounted with ntfs3.
+
+Patch 2 depends on patch 1; the others apply on their own.  The readdir
+lockdep splat I also hit is fixed in ntfs3_for_7.4 by commit
+7a5aa6c45072 ("ntfs3: release ni_lock before dir_emit in ntfs_readdir to
+fix deadlocks") together with Christian's pending "fs/ntfs3: fix double
+ni_unlock() in ntfs_readdir()", which I tested separately.
+
+Testing: the stress tests run for 120 s (the git workloads for 150 s
+and 8 minutes) in a QEMU/KVM guest with lockdep and a 20 s hung-task
+timeout, on a fresh mkntfs image, or one written by ntfs-3g for the
+sparse file tests.  The guest kernel is 7.3 with fs/ntfs3 from ntfs3
+master; the "this series" column also has Christian's readdir fix
+applied.
+
+                                    ntfs3 master      this series
+  append to 4 KiB vs. cold reader   hung after 46 s   pass, 491k files
+  the same, grown with ftruncate    hung after 46 s,  pass, 589k files
+                                    EIO + WARNING
+  the same, grown with fallocate    hung after 46 s   pass, 714k files
+  mmap store, grow, fsync, while    hung after 45 s,  pass, 192k files
+    another thread fdatasyncs       10 bad files
+  pwrite into a mid-frame hole of   14 clusters       pass
+    an ntfs-3g sparse file          zeroed
+  rewrite that sparse file          rejected, volume  pass
+                                    marked dirty
+  12 threads: create, unlink,       pass              pass, 5.1M ops
+    rename, readdir, mmap, fsync...
+  8 git worktrees of one repo,      -                 pass, 4486 commits
+    3 grep/find watchers
+  16 worktrees, 6 watchers, 8 min   -                 pass, 30815 commits
+
+The append and mmap tests also hang on 6.18.59, after 45 s each.
+
+Patch 1 is larger than the stable size limit and does not apply before
+the iomap conversion; older kernels will need a backport.
+
+Not done: sparse was not run, the code was built only as =y on x86_64,
+and no fault injection was used.
+
+Tool use: the investigation, the reproducers, the patches and their
+changelogs were produced with Claude (Anthropic's Claude Opus 5.5 model
+in Claude Code).  I asked it to set up a test VM with the newest kernel
+and an NTFS volume, reproduce the freezes I saw, find the cause and fix
+it; later I asked it to rebase the fixes onto ntfs3 master and to look
+into the ntfs-3g sparse files that ntfs3 rejected on my volume.  It
+wrote the QEMU harness and reproducers, traced the lock chains from
+lockdep and sysrq-w output, and wrote all six patches.  I reviewed them
+and ran the tests above.  Each patch carries an Assisted-by tag.  The
+reproducers and harness are at
+https://github.com/diath/ntfs3-deadlock-lab
+
+Thanks,
+Kamil
+
+Cc: Christoph Hellwig <hch@lst.de>

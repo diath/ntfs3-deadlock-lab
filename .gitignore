@@ -6,6 +6,7 @@ vmlinux*
 # Kernel sources and build trees from the README quick start
 /src/
 /build*/
+/build-*.log
 
 # NTFS test volume and per-run copies (recreate with mkntfs, see README)
 /img/

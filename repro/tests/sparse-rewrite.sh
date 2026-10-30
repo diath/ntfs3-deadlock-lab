@@ -6,7 +6,10 @@
 #
 #   pwrite     rewrite the whole file with new data via pwrite()
 #   mmapwrite  the same through a shared writable mapping
-#   onehole    pwrite() 4 KiB into the first hole only
+#   onehole    pwrite() 4 KiB into the first hole, which starts a frame
+#   midhole    pwrite() 4 KiB into the second hole, in the middle of a
+#              16-cluster frame: stock ntfs3 reallocates the whole frame and
+#              zeroes the 14 clusters of data around the hole
 #   control    untouched
 #
 # Then drop the caches and read everything back.  Exit 1 on any error,
@@ -19,6 +22,9 @@ new = os.urandom(size)
 want = {"control": open("control", "rb").read()}
 want["onehole"] = bytearray(want["control"])
 want["onehole"][1 << 20:(1 << 20) + 4096] = new[:4096]
+MID = (4 << 20) + 4096
+want["midhole"] = bytearray(want["control"])
+want["midhole"][MID:MID + 4096] = new[:4096]
 rc = 0
 def step(name, fn):
     global rc
@@ -42,13 +48,18 @@ def do_onehole():
     fd = os.open("onehole", os.O_RDWR)
     try: os.pwrite(fd, new[:4096], 1 << 20)
     finally: os.close(fd)
+def do_midhole():
+    fd = os.open("midhole", os.O_RDWR)
+    try: os.pwrite(fd, new[:4096], MID)
+    finally: os.close(fd)
 want["pwrite"] = want["mmapwrite"] = new
 step("pwrite", do_pwrite)
 step("mmapwrite", do_mmap)
 step("onehole", do_onehole)
+step("midhole", do_midhole)
 os.sync()
 open("/proc/sys/vm/drop_caches", "w").write("3\n")
-for name in ("pwrite", "mmapwrite", "onehole", "control"):
+for name in ("pwrite", "mmapwrite", "onehole", "midhole", "control"):
     try:
         st = os.stat(name)
         got = open(name, "rb").read()

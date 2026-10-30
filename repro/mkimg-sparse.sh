@@ -28,7 +28,7 @@ rm -f "$IMG"
 truncate -s 256M "$IMG"
 mkntfs -F -Q -L sparse "$IMG" >/dev/null 2>&1
 ntfs-3g "$IMG" "$MNT"
-for f in pwrite mmapwrite onehole control; do
+for f in pwrite mmapwrite onehole midhole control; do
 	cp --sparse=always "$SRC" "$MNT/$f"
 done
 umount "$MNT"

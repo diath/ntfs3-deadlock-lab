@@ -1,0 +1,67 @@
+From 332f6b1be91e098b359797ca0533b47a810a2457 Mon Sep 17 00:00:00 2001
+From: Kamil Chojnowski <contact@diath.net>
+Date: Fri, 30 Oct 2026 00:01:53 +0100
+Subject: [PATCH 3/6] fs/ntfs3: grow $DATA before publishing i_size in setattr
+To: Konstantin Komarov <almaz.alexandrovich@paragon-software.com>
+Cc: ntfs3@lists.linux.dev,
+    linux-kernel@vger.kernel.org
+
+ntfs_setattr() calls truncate_setsize() and then ntfs_set_size().  When
+a resident file grows, i_size is updated before the resident attribute,
+so a concurrent read gets an inline mapping shorter than i_size:
+iomap_read_inline_data() warns and the read fails with -EIO.
+
+  WARNING: fs/iomap/buffered-io.c:431 at iomap_read_inline_data
+   iomap_read_folio_iter
+   iomap_read_folio
+   ntfs_read_folio
+   filemap_read_folio
+
+attr_set_size_ex() updates i_size itself once the attribute is resized.
+Call truncate_setsize() first only when shrinking; when growing, resize
+the attribute first and then call pagecache_isize_extended().
+
+Reproducer: extend a small file with ftruncate(2) in 64-byte steps while
+another thread reads it; it fails within seconds.
+
+Fixes: ecbb433f9a8e ("fs/ntfs3: fold file size handling into ntfs_set_size()")
+Cc: stable@vger.kernel.org
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Kamil Chojnowski <contact@diath.net>
+---
+ fs/ntfs3/file.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ntfs3/file.c b/fs/ntfs3/file.c
+index 384e61a33a84..3b91586c4630 100644
+--- a/fs/ntfs3/file.c
++++ b/fs/ntfs3/file.c
+@@ -755,7 +755,14 @@ int ntfs_setattr(struct mnt_idmap *idmap, struct dentry *dentry,
+ 		newsize = attr->ia_size;
+ 
+ 		if (newsize != oldsize) {
+-			truncate_setsize(inode, newsize);
++			/*
++			 * Grow the attribute before i_size: read_folio maps
++			 * resident data by the attribute size and fails with
++			 * -EIO if i_size is already beyond it.  ntfs_set_size()
++			 * updates i_size.
++			 */
++			if (newsize < oldsize)
++				truncate_setsize(inode, newsize);
+ 
+ 			err = ntfs_set_size(inode, newsize);
+ 			if (err) {
+@@ -763,6 +770,9 @@ int ntfs_setattr(struct mnt_idmap *idmap, struct dentry *dentry,
+ 				goto out;
+ 			}
+ 
++			if (newsize > oldsize)
++				pagecache_isize_extended(inode, oldsize, newsize);
++
+ 			ni->std_fa |= FILE_ATTRIBUTE_ARCHIVE;
+ 			ni->ni_flags |= NI_FLAG_UPDATE_PARENT;
+ 			inode_set_mtime_to_ts(inode,
+-- 
+2.56.0
+

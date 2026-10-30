@@ -1,0 +1,82 @@
+From d59832035d8bfd979df552ccce2bcf256311df48 Mon Sep 17 00:00:00 2001
+From: Kamil Chojnowski <contact@diath.net>
+Date: Fri, 30 Oct 2026 00:07:20 +0100
+Subject: [PATCH 4/6] fs/ntfs3: write back folios that raced with $DATA
+ conversion
+To: Konstantin Komarov <almaz.alexandrovich@paragon-software.com>
+Cc: ntfs3@lists.linux.dev,
+    linux-kernel@vger.kernel.org
+
+ntfs_writepages() takes the resident path when is_resident() is true on
+entry, then calls attr_data_write_resident() for each dirty folio.  If
+$DATA was moved out of the MFT record in between, it returns the
+internal code E_NTFS_NONRESIDENT.  writeback_iter() has already cleared
+the folio's dirty bit, so its data is never written.
+
+Commit 2727ac2ba87a ("fs/ntfs3: prevent positive E_NTFS_NONRESIDENT from
+reaching writeback error handling") turned the code into -EIO, which
+stops the errseq and writeback warnings, but the folio is still dropped
+and the writeback reports an I/O error for data that could be written.
+
+Redirty the folio and finish through iomap_writepages(), which writes
+it to the clusters the attribute now has.  ntfs_writepage() handled the
+same race by falling back to block_write_full_page() until commit
+d4428bad14dd ("ntfs3: stop using generic_writepages").
+
+Reproducer: grow small files with fallocate(2) while another thread
+reads them, with the first patch of this series applied so that the
+deadlock does not hide the race.  Without the -EIO conversion this
+warned in lib/errseq.c and mm/page-writeback.c within seconds.
+
+Fixes: d4428bad14dd ("ntfs3: stop using generic_writepages")
+Cc: stable@vger.kernel.org
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Kamil Chojnowski <contact@diath.net>
+---
+ fs/ntfs3/inode.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ntfs3/inode.c b/fs/ntfs3/inode.c
+index 913ebd2a2196..8651b9e4ba06 100644
+--- a/fs/ntfs3/inode.c
++++ b/fs/ntfs3/inode.c
+@@ -1267,6 +1267,7 @@ static int ntfs_writepages(struct address_space *mapping,
+ 
+ 	if (is_resident(ni)) {
+ 		struct folio *folio = NULL;
++		bool converted = false;
+ 		err = 0;
+ 
+ 		while ((folio = writeback_iter(mapping, wbc, folio, &err))) {
+@@ -1276,6 +1277,18 @@ static int ntfs_writepages(struct address_space *mapping,
+ 			err2 = attr_data_write_resident(ni, folio);
+ 			ni_unlock(ni);
+ 
++			if (err2 == E_NTFS_NONRESIDENT) {
++				/*
++				 * $DATA was moved out of the MFT record after
++				 * the is_resident() check above.  The folio is
++				 * no longer dirty: redirty it and write it
++				 * through iomap below.
++				 */
++				folio_redirty_for_writepage(wbc, folio);
++				converted = true;
++				err2 = 0;
++			}
++
+ 			folio_unlock(folio);
+ 			if (err2) {
+ 				/*
+@@ -1293,7 +1306,8 @@ static int ntfs_writepages(struct address_space *mapping,
+ 			}
+ 		}
+ 
+-		return err;
++		if (!converted || err)
++			return err;
+ 	}
+ 
+ 	return iomap_writepages(&wpc);
+-- 
+2.56.0
+

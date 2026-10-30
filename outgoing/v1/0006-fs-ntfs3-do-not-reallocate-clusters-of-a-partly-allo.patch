@@ -1,0 +1,98 @@
+From 6ed224e50bfe1697ce47d9d806604eebb7d7564c Mon Sep 17 00:00:00 2001
+From: Kamil Chojnowski <contact@diath.net>
+Date: Fri, 30 Oct 2026 00:20:18 +0100
+Subject: [PATCH 6/6] fs/ntfs3: do not reallocate clusters of a partly
+ allocated sparse frame
+To: Konstantin Komarov <almaz.alexandrovich@paragon-software.com>
+Cc: ntfs3@lists.linux.dev,
+    linux-kernel@vger.kernel.org
+
+For a sparse or compressed attribute with a compression unit,
+attr_data_get_block_locked() fills a hole by allocating the whole frame
+around it (16 clusters for c_unit 4), assuming a frame is either fully
+allocated or fully sparse.  ntfs.sys keeps it that way, but ntfs-3g
+allocates sparse files cluster by cluster: it marks them sparse with
+c_unit 4 and leaves holes of any length at any offset.  Linker output
+written through ntfs-3g looks like that.
+
+When such a hole starts or ends inside a frame, attr_allocate_clusters()
+maps new, zeroed clusters over the clusters the frame already has:
+
+ - the data in those clusters is silently replaced with zeros;
+ - the old clusters stay marked in use but are no longer referenced;
+ - total_size grows by the whole frame, although only the hole was new.
+
+Once total_size exceeds alloc_size, mi_enum_attr() rejects the record:
+the inode goes bad and the volume is marked dirty.
+
+  ntfs3(vda): ino=40, "pwrite" mi_enum_attr
+  ntfs3(vda): Mark volume as dirty due to NTFS errors
+  ntfs3(vda): ino=40, "pwrite" attr_set_size_ex
+
+Shrink the frame aligned range to the sparse run around the requested
+cluster, so that only the hole is allocated.  Frames that are entirely
+sparse, and so all frames of files written by ntfs.sys or ntfs3, are
+allocated as before.
+
+Reproducer: in a file that ntfs-3g left with a two-cluster hole in the
+middle of a frame, pwrite(2) 4 KiB into the hole.  Before this patch 14
+clusters of data around it read back as zeros and the file uses 16 more
+clusters; after it, only the two hole clusters are allocated.
+
+Fixes: be71b5cba2e6 ("fs/ntfs3: Add attrib operations")
+Cc: stable@vger.kernel.org
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Kamil Chojnowski <contact@diath.net>
+---
+ fs/ntfs3/attrib.c | 28 ++++++++++++++++++++++++++++
+ 1 file changed, 28 insertions(+)
+
+diff --git a/fs/ntfs3/attrib.c b/fs/ntfs3/attrib.c
+index b21c913050f7..1bd05639709b 100644
+--- a/fs/ntfs3/attrib.c
++++ b/fs/ntfs3/attrib.c
+@@ -1032,6 +1032,33 @@ int attr_data_get_block(struct ntfs_inode *ni, CLST vcn, CLST clen, CLST *lcn,
+ 	return err;
+ }
+ 
++/*
++ * attr_frame_hole - Limit a frame aligned allocation to the hole at @vcn0.
++ *
++ * ntfs.sys allocates sparse and compressed attributes in whole frames, but
++ * ntfs-3g allocates sparse files cluster by cluster, so a frame can be partly
++ * allocated.  Its allocated clusters hold data and must not be allocated
++ * again: shrink [*vcn, *vcn + *to_alloc) to the sparse run around @vcn0.
++ */
++static void attr_frame_hole(const struct runs_tree *run, CLST vcn0, CLST *vcn,
++			    CLST *to_alloc)
++{
++	CLST start = vcn0, end = *vcn + *to_alloc;
++	CLST lcn, len;
++
++	while (start > *vcn &&
++	       run_lookup_entry(run, start - 1, &lcn, NULL, NULL) &&
++	       lcn == SPARSE_LCN)
++		start--;
++
++	if (run_lookup_entry(run, vcn0, &lcn, &len, NULL) &&
++	    lcn == SPARSE_LCN && vcn0 + len < end)
++		end = vcn0 + len;
++
++	*vcn = start;
++	*to_alloc = end - start;
++}
++
+ /*
+  * attr_data_get_block_locked - Helper for attr_data_get_block.
+  */
+@@ -1195,6 +1222,7 @@ again:
+ 		/* Get frame aligned vcn and to_alloc. */
+ 		vcn = vcn0 & cmask;
+ 		to_alloc = ((vcn0 + clen + clst_per_frame - 1) & cmask) - vcn;
++		attr_frame_hole(run, vcn0, &vcn, &to_alloc);
+ 		if (fr < clst_per_frame)
+ 			fr = clst_per_frame;
+ 		if (vcn != vcn0 || clen < to_alloc)
+-- 
+2.56.0
+

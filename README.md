@@ -19,9 +19,19 @@ repro/
   kconfig-debug.sh      kernel config: KVM guest + ntfs3 (or DRIVER=ntfs) + lockdep,
                         hung-task detector (20 s), 9p root
   mkimg-sparse.sh       image with ntfs-3g-written sparse files for tests/sparse-rewrite.sh (D7)
-patches/7.3/            6-patch series against v7.3 (git am / patch -p1)
+patches/7.3/            first 6-patch series against v7.3 (git am / patch -p1)
 patches/7.2.11/         the same fixes as one patch against v7.2.11
+outgoing/v1/            the series for upstream, against ntfs3 master (ee1cb3443cff):
+                        D1, D3, D4, D6, D5, D7 + cover letter; see "Upstream" below
+outgoing/*.eml          other mails to send (Tested-by for a pending fix)
+outgoing/b4-cover-template.txt  b4 cover template (b4.prep-cover-template), no extra signature
 module-7.2.11/          patched fs/ntfs3 for 7.2.11, buildable as an out-of-tree module
+                        (first series: D1-D6, not D7)
+tools/
+  mftcheck.py           read-only: replay ntfs3's mi_enum_attr() checks on MFT records
+                        (<dev> <rec>... or <dev> --scan), print the $Volume dirty flag
+  ntfs3g-leftovers.py   find and convert what ntfs-3g leaves behind (Interix symlinks,
+                        sparse files): see "Moving a volume from ntfs-3g"
 results/                consoles, logs and summaries of the runs quoted below
 
 Created by the quick start (not in git):
@@ -200,26 +210,36 @@ trips `WARNING: lib/errseq.c:75` and `WARNING: mm/page-writeback.c` and the
 already-cleaned folio is never written.  linux-next maps it to `-EIO` (no
 WARN, data still dropped).  Fix (patch 2): redirty and write via iomap.
 
-### D7 - writing into the holes of an ntfs-3g sparse file breaks it (not fixed)
+### D7 - data loss: filling a hole in an ntfs-3g sparse file zeroes its neighbours
 
 ntfs-3g makes a file sparse whenever a write leaves a gap, which is what
 linkers do, so cargo/CMake output written under ntfs-3g is sparse with
-compression unit 4 and a 4 KiB-rounded `alloc_size`.  When ntfs3 later fills
-those holes (rewriting the file in place with `pwrite` or a shared mmap), it
-over-counts `total_size` past `alloc_size`, then its own `mi_enum_attr` check
-rejects the record: the inode goes bad (`stat`/`open` return `EINVAL`), the
-volume is marked dirty, and the next rw mount is refused until chkdsk /
-`ntfsfix -d`.  A `pwrite` reports success and the file is unreadable
-afterwards.  Same on stock 7.2.11, patched 7.2.11 and stock 7.3, with or
-without `prealloc`.  Files ntfs3 creates itself are never sparse, so only
-files left over from ntfs-3g are exposed.  Repro: `sudo repro/mkimg-sparse.sh`,
-then `repro/run-vm.sh -k <bzImage> -i img/sparse-ntfs3g.img d7 repro/tests/sparse-rewrite.sh`.
+compression unit 4 (16-cluster frames), with holes of any length at any
+offset.  ntfs3 assumes a frame is either fully allocated or fully sparse:
+`attr_data_get_block_locked()` fills a hole by allocating the whole frame
+around it and maps the new, zeroed clusters over the ones the frame already
+has.  Writing 4 KiB into a 2-cluster hole in the middle of a frame:
+
+- 14 clusters of existing data read back as zeros (silent data loss);
+- the old clusters stay marked in use, referenced by nothing (chkdsk finds them);
+- `total_size` grows by 16 clusters; once it passes `alloc_size`,
+  `mi_enum_attr()` rejects the record, the inode goes bad (`stat`/`open`
+  return `EINVAL`) and the volume is marked dirty, so the next rw mount is
+  refused until chkdsk / `ntfsfix -d`.
+
+As old as the driver (5.15 rounded the length up to a frame instead of
+aligning the start, same effect).  Same on stock 7.2.11, 7.3 and ntfs3
+master, with or without `prealloc`; the first series did not fix it.
+Files that ntfs3 or ntfs.sys create keep frames whole, so only files left
+over from ntfs-3g are exposed.  Fix (patch 6 in `outgoing/v1`): allocate only
+the hole.  Repro: `sudo repro/mkimg-sparse.sh`, then
+`repro/run-vm.sh -k <bzImage> -i img/sparse-ntfs3g.img d7 repro/tests/sparse-rewrite.sh`.
 
 Also when moving from ntfs-3g: ntfs-3g writes symlinks in the Interix format
 (a small file starting with `IntxLNK\1`).  ntfs3 does not understand those
 and shows them as regular files, so `node_modules/.bin/*` fails with "Exec
-format error" and symlinked files read as garbage.  Recreate them (e.g.
-reinstall `node_modules`) or convert them to real symlinks under ntfs3.
+format error" and symlinked files read as garbage.  `tools/ntfs3g-leftovers.py`
+converts both kinds of leftovers; see "Moving a volume from ntfs-3g".
 
 ## Results
 
@@ -252,6 +272,38 @@ VM: no hangs, but the same `d1-resmmap` check lost the appended bytes (read
 back as zeros) in 6 of 76008 iterations - the same symptom as fs/ntfs.  Not
 investigated further (ntfs-3g or the FUSE layer).  Only patched ntfs3 had
 zero bad iterations on this test.
+
+### ntfs3 master (7.4 queue, ee1cb3443cff) on 7.3
+
+| test | ntfs3 master | + outgoing/v1 + readdir fix |
+|---|---|---|
+| d1-resident (append) | **HUNG 46 s** | pass, 491k files |
+| d1-resident-t (ftruncate) | **HUNG 46 s**, EIO + WARN | pass, 589k files |
+| d1-resident-f (fallocate) | **HUNG 46 s** | pass, 714k files |
+| d1-resmmap | **HUNG 45 s**, 10 corrupt | pass, 192k files |
+| dirstorm | pass | pass, 5.1M ops |
+| bigdir | **bad unlock balance** | pass |
+| sparse-rewrite (D7) | record rejected, 14 clusters zeroed | pass |
+| git-agents, 8 agents + pressure | - | pass, 4486 commits |
+| git-agents, 16 agents, 8 min | - | pass, 30815 commits |
+
+"readdir fix" is Christian Aurich Zanettini Martins' pending
+"fs/ntfs3: fix double ni_unlock() in ntfs_readdir()" v2
+(<20261029052102.1585462-1-christian.aurichzm@gmail.com>); master's readdir
+rework (7a5aa6c45072) already fixes D2 but unlocks twice without it.  6.18.59
+(LTS) hangs on d1-resident and d1-resmmap after 45 s, like 7.x.
+
+## Upstream
+
+Checked against the ntfs3 list archive (lore.kernel.org/ntfs3) and the
+maintainer tree on 2026-10-29: D2 is fixed in ntfs3_for_7.4 (plus the pending
+double-unlock fix above), D6 is only turned into -EIO there (2727ac2ba87a),
+and D1, D3, D4, D5 and D7 had not been reported.  `outgoing/v1` is the
+series for ntfs3 master; each patch has a verified Fixes: tag, Cc: stable and
+Assisted-by, builds with W=1 on its own, and passes checkpatch --strict
+(apart from "unknown commit id" in a tree without history).  It has no
+Signed-off-by: the submitter adds it (`git commit --amend -s`) after reviewing
+every patch, as Documentation/process/coding-assistants.rst requires.
 
 ## Testing on your live system (Arch, 7.2.x)
 
@@ -326,6 +378,29 @@ tarball and apply `patches/7.2.11/ntfs3-fixes-7.2.11.patch` (it applies to
 covers the kernel it was built for: after a `linux` upgrade the stock ntfs3
 is back.  Rebuild after every kernel update (or package it with DKMS), or
 hold `linux` and `linux-headers` with `IgnorePkg` while you evaluate.
+
+**Moving a volume from ntfs-3g.**  Two kinds of ntfs-3g leftovers need
+converting once a volume is mounted with ntfs3: Interix symlinks (shown as
+regular files) and sparse files with 16-cluster frames (D7, if the module
+lacks patch 6).  Stop whatever writes to the volume, then:
+
+```sh
+sudo tools/ntfs3g-leftovers.py scan /dev/disk/by-uuid/<uuid> > ~/leftovers.tsv   # read-only
+tools/ntfs3g-leftovers.py fix /mnt/X ~/leftovers.tsv            # dry run: what would change
+tools/ntfs3g-leftovers.py fix /mnt/X ~/leftovers.tsv --apply    # as the owner of the files
+```
+
+Symlinks become NTFS reparse-point symlinks (ntfs3, ntfs-3g and Windows read
+them); sparse files are copied to a normal file and renamed over the original.
+`--exclude <path>` skips a subtree (large, mostly empty disk images cost their
+full size), files with several hard links are skipped, and every change goes to
+`leftovers.tsv.log`.  Afterwards `sudo tools/mftcheck.py <dev> --scan` should
+report `rejected: 0`; then, with the volume unmounted, `ntfsfix -d <dev>`
+clears a dirty flag left by earlier errors (plain `ntfsfix` would set it again).
+
+The module in `/lib/modules/<version>/updates` only covers that kernel version:
+a kernel update brings back the stock driver.  Hold the kernel
+(`IgnorePkg = linux` in `/etc/pacman.conf`) until the module is rebuilt for it.
 
 **Moving a real partition over** (only after phase 3 passes, with backups):
 one volume at a time, e.g. `/mnt/Dev`, changing only the type in fstab -

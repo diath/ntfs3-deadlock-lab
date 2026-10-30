@@ -1,0 +1,96 @@
+From c5b9730777d8a51c698b6bcecc6f97381b4d995a Mon Sep 17 00:00:00 2001
+From: Kamil Chojnowski <contact@diath.net>
+Date: Thu, 29 Oct 2026 23:59:50 +0100
+Subject: [PATCH 2/6] fs/ntfs3: keep page cache data when converting resident
+ $DATA
+To: Konstantin Komarov <almaz.alexandrovich@paragon-software.com>
+Cc: ntfs3@lists.linux.dev,
+    linux-kernel@vger.kernel.org
+
+attr_make_nonresident() fills folio 0 from the resident copy of $DATA
+and marks it dirty.  If the folio is uptodate, it holds the newest data:
+stores through a shared mmap dirty the folio and reach the resident copy
+only at writeback.  Overwriting the folio loses them:
+
+  pwrite 300 x 'A'; mmap and overwrite with 'B'; pwrite 2000 x 'C'
+  -> the file reads back 'A' x 300 + 'C' x 2000
+
+Fill the folio from the resident copy only when it is not uptodate;
+otherwise keep it and zero it past the old size.
+
+This depends on the previous patch, which passes the locked folio 0 to
+attr_make_nonresident().
+
+Fixes: be71b5cba2e6 ("fs/ntfs3: Add attrib operations")
+Cc: stable@vger.kernel.org
+Assisted-by: Claude:claude-opus-5-5
+Signed-off-by: Kamil Chojnowski <contact@diath.net>
+---
+ fs/ntfs3/attrib.c | 47 ++++++++++++++++++++++++++++++-----------------
+ 1 file changed, 30 insertions(+), 17 deletions(-)
+
+diff --git a/fs/ntfs3/attrib.c b/fs/ntfs3/attrib.c
+index 080edebe529e..b21c913050f7 100644
+--- a/fs/ntfs3/attrib.c
++++ b/fs/ntfs3/attrib.c
+@@ -329,27 +329,40 @@ int attr_make_nonresident(struct ntfs_inode *ni, struct ATTRIB *attr,
+ 			err = ntfs_sb_write_run(sbi, run, 0, data, rsize, 0);
+ 			if (err)
+ 				goto out2;
+-		} else if (folio) {
+-			folio_fill_tail(folio, 0, data, rsize);
+-			folio_mark_uptodate(folio);
+-			folio_mark_dirty(folio);
+ 		} else if (!page) {
+ 			struct address_space *mapping = ni->vfs_inode.i_mapping;
++			struct folio *f = folio;
++
++			if (!f) {
++				WARN_ONCE(1, "ntfs3: r=%llx: folio 0 locked under ni_lock",
++					  (u64)ni->mi.rno);
++				f = __filemap_get_folio(
++					mapping, 0,
++					FGP_LOCK | FGP_ACCESSED | FGP_CREAT,
++					mapping_gfp_mask(mapping));
++				if (IS_ERR(f)) {
++					err = PTR_ERR(f);
++					goto out2;
++				}
++			}
+ 
+-			WARN_ONCE(1, "ntfs3: r=%llx: folio 0 locked under ni_lock",
+-				  (u64)ni->mi.rno);
+-			folio = __filemap_get_folio(
+-				mapping, 0, FGP_LOCK | FGP_ACCESSED | FGP_CREAT,
+-				mapping_gfp_mask(mapping));
+-			if (IS_ERR(folio)) {
+-				err = PTR_ERR(folio);
+-				goto out2;
++			if (folio_test_uptodate(f)) {
++				/*
++				 * The page cache copy is the newest one: it may
++				 * be dirty through mmap and not yet written back
++				 * to the resident attribute.  Keep it.
++				 */
++				folio_zero_segment(f, rsize, folio_size(f));
++			} else {
++				folio_fill_tail(f, 0, data, rsize);
++				folio_mark_uptodate(f);
++			}
++			folio_mark_dirty(f);
++
++			if (!folio) {
++				folio_unlock(f);
++				folio_put(f);
+ 			}
+-			folio_fill_tail(folio, 0, data, rsize);
+-			folio_mark_uptodate(folio);
+-			folio_mark_dirty(folio);
+-			folio_unlock(folio);
+-			folio_put(folio);
+ 		}
+ 	}
+ 
+-- 
+2.56.0
+
